@@ -34,7 +34,7 @@ router.get("/:id", (req, res) => {
 
 // POST /trips — Create trip (Draft) - Dispatcher Only
 // Business rules: capacity check, vehicle Available, driver OnDuty, license not expired
-router.post("/", requireRole(["Dispatcher"]), requireFields(["vehicle_id", "driver_id", "cargo_weight"]), (req, res) => {
+router.post("/", requireRole(["Manager", "Dispatcher"]), requireFields(["vehicle_id", "driver_id", "cargo_weight"]), (req, res) => {
   const { vehicle_id, driver_id, cargo_weight, start_location, end_location, revenue, origin_region_id, destination_region_id } = req.body;
 
   // Fetch vehicle
@@ -89,7 +89,7 @@ router.post("/", requireRole(["Dispatcher"]), requireFields(["vehicle_id", "driv
 
 // PATCH /trips/:id/dispatch — Dispatch a trip - Dispatcher Only
 // Transaction: trip → Dispatched, vehicle → OnTrip, driver → OnTrip
-router.patch("/:id/dispatch", requireRole(["Dispatcher"]), (req, res) => {
+router.patch("/:id/dispatch", requireRole(["Manager", "Dispatcher"]), (req, res) => {
   const trip = db.prepare("SELECT * FROM trips WHERE id = ?").get(req.params.id);
   if (!trip) {
     return res.status(404).json({ error: "Trip not found" });

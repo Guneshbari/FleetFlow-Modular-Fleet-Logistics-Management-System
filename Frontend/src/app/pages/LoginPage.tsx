@@ -1,26 +1,68 @@
 import { useState } from 'react';
-import { Truck, Sun, Moon } from 'lucide-react';
+import { Truck, Sun, Moon, Loader2 } from 'lucide-react';
 import { Input } from '../components/ui/input';
 import { Button } from '../components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { useTheme } from '../context/ThemeContext';
+import api from '../services/api';
 
 interface LoginPageProps {
-  onLogin: () => void;
+  onLogin: (user: { id: number; name: string; email: string; role: string }) => void;
 }
 
 export function LoginPage({ onLogin }: LoginPageProps) {
   const { theme, toggleTheme } = useTheme();
   const [isRegister, setIsRegister] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
+  const [resetSent, setResetSent] = useState(false);
   const [formData, setFormData] = useState({
-    username: '',
+    name: '',
+    email: '',
     password: '',
     role: '',
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onLogin();
+    setError('');
+    setLoading(true);
+
+    try {
+      if (isRegister) {
+        // Signup flow
+        if (!formData.name || !formData.email || !formData.password || !formData.role) {
+          setError('All fields are required');
+          setLoading(false);
+          return;
+        }
+        const result = await api.auth.signup({
+          name: formData.name,
+          email: formData.email,
+          password: formData.password,
+          role: formData.role,
+        });
+        onLogin(result.user);
+      } else {
+        // Login flow
+        if (!formData.email || !formData.password) {
+          setError('Email and password are required');
+          setLoading(false);
+          return;
+        }
+        const result = await api.auth.login({
+          email: formData.email,
+          password: formData.password,
+        });
+        onLogin(result.user);
+      }
+    } catch (err: any) {
+      setError(err.message || 'Authentication failed');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -48,7 +90,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
             <span className="text-2xl font-bold text-foreground">FleetFlow</span>
           </div>
 
-          {/* Form */}
+          {/* Form Header */}
           <div className="mb-6">
             <h1 className="text-3xl font-bold text-foreground mb-2">
               {isRegister ? 'Create Account' : 'Welcome Back'}
@@ -60,16 +102,39 @@ export function LoginPage({ onLogin }: LoginPageProps) {
             </p>
           </div>
 
+          {/* Error Message */}
+          {error && (
+            <div className="mb-4 bg-[#EF4444]/10 text-[#EF4444] px-4 py-3 rounded-lg text-sm font-medium">
+              {error}
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Name field — only for registration */}
+            {isRegister && (
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Full Name
+                </label>
+                <Input
+                  type="text"
+                  placeholder="Enter your full name"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  className="bg-card border-border text-foreground placeholder:text-muted-foreground"
+                />
+              </div>
+            )}
+
             <div>
               <label className="block text-sm font-medium text-foreground mb-2">
-                Username
+                Email
               </label>
               <Input
-                type="text"
-                placeholder="Enter your username"
-                value={formData.username}
-                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                type="email"
+                placeholder="Enter your email"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 className="bg-card border-border text-foreground placeholder:text-muted-foreground"
               />
             </div>
@@ -85,8 +150,18 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 className="bg-card border-border text-foreground placeholder:text-muted-foreground"
               />
+              {!isRegister && (
+                <button
+                  type="button"
+                  onClick={() => { setShowForgotPassword(true); setResetSent(false); setResetEmail(''); }}
+                  className="text-xs text-muted-foreground hover:text-foreground transition-colors mt-2 cursor-pointer"
+                >
+                  Forgot Password?
+                </button>
+              )}
             </div>
 
+            {/* Role selector — only for registration */}
             {isRegister && (
               <div>
                 <label className="block text-sm font-medium text-foreground mb-2">
@@ -97,9 +172,10 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                     <SelectValue placeholder="Select your role" />
                   </SelectTrigger>
                   <SelectContent className="bg-card border-border">
-                    <SelectItem value="manager">Manager</SelectItem>
-                    <SelectItem value="dispatcher">Dispatcher</SelectItem>
-                    <SelectItem value="analyst">Analyst</SelectItem>
+                    <SelectItem value="Manager">Fleet Manager</SelectItem>
+                    <SelectItem value="Dispatcher">Dispatcher</SelectItem>
+                    <SelectItem value="Safety Officer">Safety Officer</SelectItem>
+                    <SelectItem value="Financial Analyst">Financial Analyst</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -107,15 +183,17 @@ export function LoginPage({ onLogin }: LoginPageProps) {
 
             <Button
               type="submit"
+              disabled={loading}
               className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold"
             >
-              {isRegister ? 'Register' : 'Login'}
+              {loading && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+              {isRegister ? 'Create Account' : 'Sign In'}
             </Button>
           </form>
 
           <div className="mt-6 text-center">
             <button
-              onClick={() => setIsRegister(!isRegister)}
+              onClick={() => { setIsRegister(!isRegister); setError(''); }}
               className="text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
               {isRegister
@@ -123,10 +201,61 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                 : "Don't have an account? Register"}
             </button>
           </div>
+
+          {/* Forgot Password Modal */}
+          {showForgotPassword && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+              <div className="bg-card border border-border rounded-xl p-6 w-full max-w-md shadow-2xl">
+                <h3 className="text-lg font-bold text-foreground mb-2">Reset Password</h3>
+                {resetSent ? (
+                  <div>
+                    <div className="bg-[#22C55E]/10 text-[#22C55E] px-4 py-3 rounded-lg text-sm mb-4">
+                      ✓ Password reset link sent to <strong>{resetEmail}</strong>. Check your inbox.
+                    </div>
+                    <Button
+                      onClick={() => setShowForgotPassword(false)}
+                      className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
+                    >
+                      Back to Login
+                    </Button>
+                  </div>
+                ) : (
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Enter your email address and we'll send you a reset link.
+                    </p>
+                    <Input
+                      type="email"
+                      placeholder="Enter your email"
+                      value={resetEmail}
+                      onChange={(e) => setResetEmail(e.target.value)}
+                      className="bg-background border-border text-foreground mb-4"
+                    />
+                    <div className="flex gap-3">
+                      <Button
+                        onClick={() => { if (resetEmail) setResetSent(true); }}
+                        disabled={!resetEmail}
+                        className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground"
+                      >
+                        Send Reset Link
+                      </Button>
+                      <Button
+                        onClick={() => setShowForgotPassword(false)}
+                        variant="outline"
+                        className="flex-1 bg-transparent border-border text-foreground hover:bg-secondary"
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Right Side - Image/Branding */}
+      {/* Right Side - Branding */}
       <div className="w-1/2 bg-card flex items-center justify-center p-8 transition-colors duration-300">
         <div className="max-w-lg text-center">
           <div className="mb-6">

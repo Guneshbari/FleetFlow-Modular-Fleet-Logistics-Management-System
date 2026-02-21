@@ -1,10 +1,6 @@
 const express = require("express");
 const router = express.Router();
 const db = require("../db");
-const { requireRole } = require("../middleware/auth");
-
-// Manager role required for all analytics routes
-router.use(requireRole(["Manager"]));
 
 // Helper: Get operational costs per vehicle
 const getOperationalCostPerVehicle = () => {
@@ -25,7 +21,7 @@ const getOperationalCostPerVehicle = () => {
   return costs;
 };
 
-// GET /analytics/summary — Fleet-wide analytics with all KPIs + Regions 
+// GET /analytics/summary — Fleet-wide analytics (accessible to both Manager and Dispatcher)
 router.get("/summary", (req, res) => {
   // Total vehicles by status
   const vehicleCounts = db.prepare(`
@@ -43,6 +39,26 @@ router.get("/summary", (req, res) => {
     ? Math.round(((vehicleCounts.on_trip || 0) / activeFleet) * 10000) / 100
     : 0;
 
+  // Driver counts
+  const driverCounts = db.prepare(`
+    SELECT COUNT(*) AS total_drivers,
+      SUM(CASE WHEN status = 'OnDuty' THEN 1 ELSE 0 END) AS on_duty,
+      SUM(CASE WHEN status = 'OnTrip' THEN 1 ELSE 0 END) AS on_trip,
+      SUM(CASE WHEN status = 'OffDuty' THEN 1 ELSE 0 END) AS off_duty,
+      SUM(CASE WHEN status = 'Suspended' THEN 1 ELSE 0 END) AS suspended
+    FROM drivers
+  `).get();
+
+  // Trip counts
+  const tripCounts = db.prepare(`
+    SELECT COUNT(*) AS total_trips,
+      SUM(CASE WHEN status = 'Completed' THEN 1 ELSE 0 END) AS completed,
+      SUM(CASE WHEN status = 'Dispatched' THEN 1 ELSE 0 END) AS dispatched,
+      SUM(CASE WHEN status = 'Draft' THEN 1 ELSE 0 END) AS draft,
+      SUM(CASE WHEN status = 'Cancelled' THEN 1 ELSE 0 END) AS cancelled
+    FROM trips
+  `).get();
+
   // Regional Vehicle Counts and Utilization
   const regionalVehicles = db.prepare(`
     SELECT r.name,
@@ -55,12 +71,12 @@ router.get("/summary", (req, res) => {
 
   const regionalUtilization = regionalVehicles.map(r => ({
     region: r.name,
-    total: r.total_vehicles,
+    total_vehicles: r.total_vehicles,
     on_trip: r.on_trip,
     utilization_rate_percent: r.total_vehicles > 0 ? Math.round(((r.on_trip || 0) / r.total_vehicles) * 10000) / 100 : 0
   }));
 
-  // Top performing driver by region (based on total completed trips)
+  // Top performing driver by region
   const topDrivers = db.prepare(`
     SELECT r.name AS region, d.name AS driver_name, COUNT(t.id) as completed_trips
     FROM regions r
@@ -71,7 +87,6 @@ router.get("/summary", (req, res) => {
     ORDER BY r.id, completed_trips DESC
   `).all();
   
-  // Condense to just top 1 per region
   const topDriverPerRegion = {};
   topDrivers.forEach(td => {
     if (!topDriverPerRegion[td.region]) {
@@ -89,42 +104,56 @@ router.get("/summary", (req, res) => {
     LIMIT 1
   `).get();
 
-  // Average revenue per vehicle per month
-  // Approximate logic: Find total revenue divided by unique active months across all vehicles
-  const tripMonths = db.prepare("SELECT COUNT(DISTINCT strftime('%Y-%m', created_at)) as months FROM trips WHERE status = 'Completed'").get().months;
+  // Pending Cargo - sum of cargo_weight for Draft trips
+  const pendingCargoResult = db.prepare("SELECT COALESCE(SUM(cargo_weight), 0) AS total_weight, COUNT(*) AS count FROM trips WHERE status = 'Draft'").get();
+
+  // Total revenue and costs
   const totalRevenue = db.prepare("SELECT COALESCE(SUM(revenue), 0) AS total FROM trips WHERE status = 'Completed'").get().total;
-  
-  const avgRevenuePerVehiclePerMonth = (vehicleCounts.total_vehicles > 0 && tripMonths > 0) 
-    ? Math.round((totalRevenue / vehicleCounts.total_vehicles / tripMonths) * 100) / 100 
-    : 0;
-
-  // Pending Cargo
-  const pendingCargo = db.prepare("SELECT COUNT(*) AS draft FROM trips WHERE status = 'Draft'").get().draft || 0;
-
-  // Total costs
   const fuelCost = db.prepare("SELECT COALESCE(SUM(cost), 0) AS total FROM fuel_logs").get().total;
   const maintenanceCost = db.prepare("SELECT COALESCE(SUM(cost), 0) AS total FROM maintenance_logs").get().total;
   const totalOperationalCost = fuelCost + maintenanceCost;
 
+  // Monthly revenue trend (last 6 months)
+  const monthlyRevenue = db.prepare(`
+    SELECT strftime('%Y-%m', created_at) AS month,
+           COALESCE(SUM(revenue), 0) AS revenue,
+           COUNT(*) AS trips
+    FROM trips
+    WHERE status = 'Completed'
+    GROUP BY strftime('%Y-%m', created_at)
+    ORDER BY month ASC
+  `).all();
+
   res.json({
     kpis: {
-      active_fleet: vehicleCounts.on_trip || 0,
-      maintenance_alerts: vehicleCounts.in_shop || 0,
+      total_vehicles: vehicleCounts.total_vehicles || 0,
+      active_fleet: activeFleet,
+      on_trip: vehicleCounts.on_trip || 0,
+      available: vehicleCounts.available || 0,
+      in_shop: vehicleCounts.in_shop || 0,
+      retired: vehicleCounts.retired || 0,
       utilization_rate_percent: utilizationRate,
-      pending_cargo: pendingCargo,
-      avg_revenue_per_vehicle_per_month: avgRevenuePerVehiclePerMonth
+      pending_cargo: pendingCargoResult.count || 0,
+      pending_cargo_weight: pendingCargoResult.total_weight || 0,
+      total_drivers: driverCounts.total_drivers || 0,
+      drivers_on_duty: driverCounts.on_duty || 0,
+      total_trips: tripCounts.total_trips || 0,
+      completed_trips: tripCounts.completed || 0,
+      dispatched_trips: tripCounts.dispatched || 0,
     },
-    regional_metrics: {
-      utilization: regionalUtilization,
-      top_drivers: topDriverPerRegion
-    },
-    most_expensive_vehicle: mostExpensiveVehicle && mostExpensiveVehicle.total_maintenance_cost > 0 ? mostExpensiveVehicle : null,
+    revenue: totalRevenue,
     costs: {
       fuel_cost: fuelCost,
       maintenance_cost: maintenanceCost,
       total_operational_cost: totalOperationalCost,
     },
     profit: totalRevenue - totalOperationalCost,
+    monthly_revenue: monthlyRevenue,
+    regional_metrics: {
+      utilization: regionalUtilization,
+      top_drivers: topDriverPerRegion
+    },
+    most_expensive_vehicle: mostExpensiveVehicle && mostExpensiveVehicle.total_maintenance_cost > 0 ? mostExpensiveVehicle : null,
   });
 });
 
@@ -134,7 +163,6 @@ router.get("/vehicle/:id/history", (req, res) => {
   const vehicle = db.prepare("SELECT * FROM vehicles WHERE id = ?").get(vid);
   if (!vehicle) return res.status(404).json({ error: "Vehicle not found" });
 
-  // Get distinct months from trips, fuel, and maintenance
   const monthsRows = db.prepare(`
     SELECT DISTINCT strftime('%Y-%m', created_at) AS month FROM trips WHERE vehicle_id = ? AND status = 'Completed'
     UNION
@@ -155,19 +183,15 @@ router.get("/vehicle/:id/history", (req, res) => {
   };
 
   for (const month of months) {
-    // Revenue
     const rev = db.prepare("SELECT COALESCE(SUM(revenue), 0) as total, COALESCE(SUM(end_odometer - start_odometer), 0) as distance FROM trips WHERE vehicle_id = ? AND status = 'Completed' AND strftime('%Y-%m', created_at) = ?").get(vid, month);
     history.monthly_revenue.push({ month, revenue: rev.total });
 
-    // Fuel
     const fuel = db.prepare("SELECT COALESCE(SUM(cost), 0) as total FROM fuel_logs WHERE vehicle_id = ? AND strftime('%Y-%m', created_at) = ?").get(vid, month);
     history.monthly_fuel_cost.push({ month, fuel_cost: fuel.total });
 
-    // Maintenance
     const maint = db.prepare("SELECT COALESCE(SUM(cost), 0) as total FROM maintenance_logs WHERE vehicle_id = ? AND strftime('%Y-%m', created_at) = ?").get(vid, month);
     history.monthly_maintenance_cost.push({ month, maintenance_cost: maint.total });
 
-    // Cost per km
     const op_cost = fuel.total + maint.total;
     const cpkm = rev.distance > 0 ? Math.round((op_cost / rev.distance) * 100) / 100 : null;
     history.cost_per_km_trend.push({ month, cost_per_km: cpkm });
@@ -231,7 +255,84 @@ router.get("/driver/:id", (req, res) => {
   });
 });
 
-// GET /analytics/export — CSV export Manager only
+// GET /analytics/notifications — Recent activity notifications
+router.get("/notifications", (req, res) => {
+  const notifications = [];
+  
+  // Recent completed trips
+  const recentTrips = db.prepare(`
+    SELECT t.id, d.name AS driver_name, v.license_plate, t.revenue, t.status, t.created_at
+    FROM trips t
+    LEFT JOIN drivers d ON t.driver_id = d.id
+    LEFT JOIN vehicles v ON t.vehicle_id = v.id
+    WHERE t.status IN ('Completed', 'Dispatched')
+    ORDER BY t.created_at DESC LIMIT 5
+  `).all();
+  
+  recentTrips.forEach(t => {
+    if (t.status === 'Completed') {
+      notifications.push({
+        id: `trip-${t.id}`,
+        type: 'success',
+        title: 'Trip Completed',
+        message: `Trip #${t.id} completed by ${t.driver_name} — $${t.revenue} revenue`,
+        time: t.created_at,
+      });
+    } else {
+      notifications.push({
+        id: `trip-${t.id}`,
+        type: 'info',
+        title: 'Trip Dispatched',
+        message: `Trip #${t.id} dispatched with ${t.license_plate}`,
+        time: t.created_at,
+      });
+    }
+  });
+
+  // Vehicles in maintenance
+  const inShop = db.prepare(`
+    SELECT v.model, v.license_plate, ml.description, ml.date
+    FROM vehicles v
+    JOIN maintenance_logs ml ON v.id = ml.vehicle_id
+    WHERE v.status = 'InShop'
+    ORDER BY ml.date DESC LIMIT 3
+  `).all();
+
+  inShop.forEach(v => {
+    notifications.push({
+      id: `maint-${v.license_plate}`,
+      type: 'warning',
+      title: 'Vehicle in Maintenance',
+      message: `${v.license_plate} (${v.model}) — ${v.description}`,
+      time: v.date,
+    });
+  });
+
+  // Expired licenses
+  const today = new Date().toISOString().split("T")[0];
+  const expiredDrivers = db.prepare(`
+    SELECT name, license_expiry FROM drivers 
+    WHERE license_expiry < ? AND status != 'Suspended'
+    ORDER BY license_expiry ASC LIMIT 3
+  `).all(today);
+
+  expiredDrivers.forEach(d => {
+    notifications.push({
+      id: `license-${d.name}`,
+      type: 'error',
+      title: 'License Expired',
+      message: `${d.name}'s license expired on ${d.license_expiry}`,
+      time: d.license_expiry,
+    });
+  });
+
+  // Sort by time descending
+  notifications.sort((a, b) => b.time.localeCompare(a.time));
+
+  res.json(notifications);
+});
+
+// GET /analytics/export — CSV export
 router.get("/export", (req, res) => {
   const vehicles = db.prepare("SELECT * FROM vehicles ORDER BY id").all();
   const costs = getOperationalCostPerVehicle();

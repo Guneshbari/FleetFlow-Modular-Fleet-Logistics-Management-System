@@ -11,7 +11,16 @@ import {
 interface AppSidebarProps {
   currentPage: string;
   onNavigate: (page: string) => void;
+  userRole?: string;
 }
+
+// Define which roles can access which pages
+const roleAccess: Record<string, string[]> = {
+  'Manager':            ['dashboard', 'vehicles', 'trips', 'maintenance', 'expenses', 'drivers', 'analytics'],
+  'Dispatcher':         ['dashboard', 'vehicles', 'trips'],
+  'Safety Officer':     ['dashboard', 'drivers'],
+  'Financial Analyst':  ['dashboard', 'expenses', 'analytics'],
+};
 
 const menuItems = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -23,7 +32,10 @@ const menuItems = [
   { id: 'analytics', label: 'Analytics', icon: BarChart3 },
 ];
 
-export function AppSidebar({ currentPage, onNavigate }: AppSidebarProps) {
+export function AppSidebar({ currentPage, onNavigate, userRole }: AppSidebarProps) {
+  const allowedPages = roleAccess[userRole || 'Manager'] || roleAccess['Manager'];
+  const visibleItems = menuItems.filter(item => allowedPages.includes(item.id));
+
   return (
     <div className="fixed left-0 top-0 h-screen w-[260px] bg-card border-r border-border flex flex-col transition-colors duration-300">
       {/* Logo */}
@@ -38,7 +50,7 @@ export function AppSidebar({ currentPage, onNavigate }: AppSidebarProps) {
 
       {/* Menu Items */}
       <nav className="flex-1 px-3 py-4 space-y-1">
-        {menuItems.map((item) => {
+        {visibleItems.map((item) => {
           const Icon = item.icon;
           const isActive = currentPage === item.id;
 
@@ -60,6 +72,16 @@ export function AppSidebar({ currentPage, onNavigate }: AppSidebarProps) {
           );
         })}
       </nav>
+
+      {/* Role Badge */}
+      {userRole && (
+        <div className="px-4 py-2 border-t border-border">
+          <div className="bg-secondary rounded-lg px-3 py-2 text-center">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Role</p>
+            <p className="text-sm font-semibold text-foreground">{userRole}</p>
+          </div>
+        </div>
+      )}
 
       {/* Footer */}
       <div className="p-4 border-t border-border">

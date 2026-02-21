@@ -1,43 +1,83 @@
-import { useState } from 'react';
-import { Plus, Calendar } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Plus, Calendar, Loader2 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { DataTable } from '../components/DataTable';
 import { StatusBadge } from '../components/StatusBadge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
-
-const maintenanceLogs = [
-  { id: 'LOG-001', vehicle: 'TRK-5023', issue: 'Oil Change', date: '2026-02-15', cost: '$120', status: 'completed' },
-  { id: 'LOG-002', vehicle: 'VAN-3012', issue: 'Brake Replacement', date: '2026-02-18', cost: '$450', status: 'pending' },
-  { id: 'LOG-003', vehicle: 'TRK-6145', issue: 'Tire Rotation', date: '2026-02-10', cost: '$80', status: 'completed' },
-  { id: 'LOG-004', vehicle: 'VAN-2098', issue: 'Engine Check', date: '2026-02-20', cost: '$200', status: 'on-trip' },
-  { id: 'LOG-005', vehicle: 'TRK-7321', issue: 'Battery Replacement', date: '2026-02-12', cost: '$180', status: 'completed' },
-];
+import api from '../services/api';
 
 const columns = [
-  { key: 'id', label: 'Log ID', width: '15%' },
-  { key: 'vehicle', label: 'Vehicle', width: '15%' },
-  { key: 'issue', label: 'Issue/Service', width: '25%' },
+  { key: 'id', label: 'Log ID', width: '10%' },
+  { key: 'vehicle', label: 'Vehicle', width: '20%' },
+  { key: 'description', label: 'Issue/Service', width: '30%' },
   { key: 'date', label: 'Date', width: '15%' },
-  { key: 'cost', label: 'Cost', width: '15%' },
-  { key: 'status', label: 'Status', width: '15%' },
+  { key: 'cost', label: 'Cost ($)', width: '15%' },
+  { key: 'vehicle_status', label: 'Vehicle Status', width: '10%' },
 ];
 
 export function MaintenancePage() {
+  const [logs, setLogs] = useState<any[]>([]);
+  const [vehicles, setVehicles] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState({
-    vehicle: '',
-    issue: '',
-    date: '',
+    vehicle_id: '',
+    description: '',
     cost: '',
   });
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsModalOpen(false);
-    setFormData({ vehicle: '', issue: '', date: '', cost: '' });
+  const loadData = async () => {
+    try {
+      const [logsData, vehiclesData] = await Promise.all([
+        api.maintenance.list().catch(() => []),
+        api.vehicles.list().catch(() => []),
+      ]);
+      setLogs(Array.isArray(logsData) ? logsData : []);
+      setVehicles(Array.isArray(vehiclesData) ? vehiclesData : []);
+    } catch (e) {
+      console.error('Failed to load maintenance data:', e);
+    } finally {
+      setLoading(false);
+    }
   };
+
+  useEffect(() => { loadData(); }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setSubmitting(true);
+    try {
+      await api.maintenance.create({
+        vehicle_id: Number(formData.vehicle_id),
+        description: formData.description,
+        cost: Number(formData.cost),
+      });
+      setIsModalOpen(false);
+      setFormData({ vehicle_id: '', description: '', cost: '' });
+      await loadData();
+    } catch (err: any) {
+      setError(err.message || 'Failed to create maintenance log');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  // Build vehicle lookup map
+  const vehicleMap: Record<number, any> = {};
+  vehicles.forEach(v => { vehicleMap[v.id] = v; });
 
   return (
     <div className="space-y-6">
@@ -60,69 +100,51 @@ export function MaintenancePage() {
               <DialogTitle className="text-xl font-bold">Create New Service Log</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+              {error && (
+                <div className="bg-[#EF4444]/10 text-[#EF4444] px-4 py-2 rounded-lg text-sm">{error}</div>
+              )}
               <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
-                  Vehicle
-                </label>
-                <Select value={formData.vehicle} onValueChange={(value) => setFormData({ ...formData, vehicle: value })}>
+                <label className="block text-sm font-medium text-foreground mb-2">Vehicle</label>
+                <Select value={formData.vehicle_id} onValueChange={(value) => setFormData({ ...formData, vehicle_id: value })}>
                   <SelectTrigger className="bg-background border-border text-foreground">
                     <SelectValue placeholder="Select vehicle" />
                   </SelectTrigger>
                   <SelectContent className="bg-card border-border">
-                    <SelectItem value="TRK-5023">TRK-5023 - Ford F-150</SelectItem>
-                    <SelectItem value="VAN-3012">VAN-3012 - Mercedes Sprinter</SelectItem>
-                    <SelectItem value="TRK-6145">TRK-6145 - Toyota Hilux</SelectItem>
+                    {vehicles.map(v => (
+                      <SelectItem key={v.id} value={String(v.id)}>
+                        {v.license_plate} — {v.model}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
-
               <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
-                  Issue/Service Description
-                </label>
+                <label className="block text-sm font-medium text-foreground mb-2">Issue/Service Description</label>
                 <Input
                   placeholder="e.g., Oil Change, Brake Replacement"
-                  value={formData.issue}
-                  onChange={(e) => setFormData({ ...formData, issue: e.target.value })}
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   className="bg-background border-border text-foreground"
+                  required
                 />
               </div>
-
               <div>
-                <label className="block text-sm font-medium text-foreground mb-2 flex items-center gap-2">
-                  <Calendar className="w-4 h-4" />
-                  Service Date
-                </label>
+                <label className="block text-sm font-medium text-foreground mb-2">Cost ($)</label>
                 <Input
-                  type="date"
-                  value={formData.date}
-                  onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                  className="bg-background border-border text-foreground"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
-                  Cost ($)
-                </label>
-                <Input
+                  type="number"
                   placeholder="e.g., 120"
                   value={formData.cost}
                   onChange={(e) => setFormData({ ...formData, cost: e.target.value })}
                   className="bg-background border-border text-foreground"
+                  required
                 />
               </div>
-
               <div className="flex gap-3 pt-4">
-                <Button type="submit" className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground">
+                <Button type="submit" disabled={submitting} className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground">
+                  {submitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
                   Create Log
                 </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setIsModalOpen(false)}
-                  className="flex-1 bg-transparent border-border text-foreground hover:bg-secondary"
-                >
+                <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)} className="flex-1 bg-transparent border-border text-foreground hover:bg-secondary">
                   Cancel
                 </Button>
               </div>
@@ -134,10 +156,18 @@ export function MaintenancePage() {
       {/* Maintenance Table */}
       <DataTable
         columns={columns}
-        data={maintenanceLogs}
+        data={logs.map(log => ({
+          ...log,
+          vehicle: log.vehicle_model ? `${log.license_plate} — ${log.vehicle_model}` : `Vehicle #${log.vehicle_id}`,
+          date: log.created_at ? new Date(log.created_at).toLocaleDateString() : '—',
+          vehicle_status: vehicleMap[log.vehicle_id]?.status || '—',
+        }))}
         renderCell={(column, row) => {
-          if (column.key === 'status') {
-            return <StatusBadge status={row.status as any} />;
+          if (column.key === 'vehicle_status') {
+            return row.vehicle_status !== '—' ? <StatusBadge status={row.vehicle_status} /> : '—';
+          }
+          if (column.key === 'cost') {
+            return `$${Number(row.cost).toLocaleString()}`;
           }
           return row[column.key];
         }}

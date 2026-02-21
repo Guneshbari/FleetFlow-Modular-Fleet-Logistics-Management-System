@@ -10,7 +10,8 @@ CREATE TABLE IF NOT EXISTS users (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   name TEXT NOT NULL,
   email TEXT UNIQUE NOT NULL,
-  role TEXT NOT NULL CHECK(role IN ('Manager', 'Dispatcher')),
+  password_hash TEXT NOT NULL,
+  role TEXT NOT NULL CHECK(role IN ('Manager', 'Dispatcher', 'Safety Officer', 'Financial Analyst')),
   created_at TEXT DEFAULT (datetime('now'))
 );
 

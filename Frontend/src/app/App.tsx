@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AppSidebar } from './components/AppSidebar';
 import { AppHeader } from './components/AppHeader';
 import { LoginPage } from './pages/LoginPage';
@@ -10,6 +10,7 @@ import { ExpensesPage } from './pages/ExpensesPage';
 import { DriversPage } from './pages/DriversPage';
 import { AnalyticsPage } from './pages/AnalyticsPage';
 import { useTheme } from './context/ThemeContext';
+import api from './services/api';
 
 type Page = 'login' | 'dashboard' | 'vehicles' | 'trips' | 'maintenance' | 'expenses' | 'drivers' | 'analytics';
 
@@ -26,16 +27,54 @@ const pageConfig = {
 export default function App() {
   const [currentPage, setCurrentPage] = useState<Page>('login');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [user, setUser] = useState<{ id: number; name: string; email: string; role: string } | null>(null);
+  const [loading, setLoading] = useState(true);
   const { theme } = useTheme();
 
-  const handleLogin = () => {
+  // Auto-resume session from stored JWT token
+  useEffect(() => {
+    const resumeSession = async () => {
+      if (api.auth.isLoggedIn()) {
+        try {
+          const result = await api.auth.me();
+          setUser(result.user);
+          setIsAuthenticated(true);
+          setCurrentPage('dashboard');
+        } catch {
+          // Token expired or invalid — stay on login
+          api.auth.logout();
+        }
+      }
+      setLoading(false);
+    };
+    resumeSession();
+  }, []);
+
+  const handleLogin = (userData: { id: number; name: string; email: string; role: string }) => {
+    setUser(userData);
     setIsAuthenticated(true);
     setCurrentPage('dashboard');
+  };
+
+  const handleLogout = () => {
+    api.auth.logout();
+    setUser(null);
+    setIsAuthenticated(false);
+    setCurrentPage('login');
   };
 
   const handleNavigate = (page: string) => {
     setCurrentPage(page as Page);
   };
+
+  // Loading spinner while checking token
+  if (loading) {
+    return (
+      <div className={`${theme} min-h-screen bg-background flex items-center justify-center`}>
+        <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
+      </div>
+    );
+  }
 
   // Show login page if not authenticated
   if (!isAuthenticated || currentPage === 'login') {
@@ -53,12 +92,12 @@ export default function App() {
   return (
     <div className={`${theme} min-h-screen bg-background transition-colors duration-300`}>
       {/* Sidebar */}
-      <AppSidebar currentPage={currentPage} onNavigate={handleNavigate} />
+      <AppSidebar currentPage={currentPage} onNavigate={handleNavigate} userRole={user?.role} />
 
       {/* Main Content */}
       <div className="ml-[260px]">
         {/* Header */}
-        <AppHeader title={config?.title || 'Dashboard'} />
+        <AppHeader title={config?.title || 'Dashboard'} user={user} onLogout={handleLogout} />
 
         {/* Page Content */}
         <main className="p-8">
