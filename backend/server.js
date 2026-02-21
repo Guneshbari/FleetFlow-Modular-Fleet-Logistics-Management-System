@@ -11,6 +11,7 @@ const tripRoutes = require("./routes/trips");
 const fuelRoutes = require("./routes/fuel");
 const maintenanceRoutes = require("./routes/maintenance");
 const analyticsRoutes = require("./routes/analytics");
+const regionRoutes = require("./routes/regions");
 
 const app = express();
 
@@ -30,6 +31,7 @@ app.use("/trips", tripRoutes);
 app.use("/fuel", fuelRoutes);
 app.use("/maintenance", maintenanceRoutes);
 app.use("/analytics", analyticsRoutes);
+app.use("/regions", regionRoutes);
 
 // Centralized error handler (must be last)
 app.use(errorHandler);

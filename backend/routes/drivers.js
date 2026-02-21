@@ -7,7 +7,12 @@ const VALID_STATUSES = ["OnDuty", "OffDuty", "OnTrip", "Suspended"];
 
 // GET /drivers — List all drivers
 router.get("/", (req, res) => {
-  const drivers = db.prepare("SELECT * FROM drivers ORDER BY id DESC").all();
+  const drivers = db.prepare(`
+    SELECT d.*, r.name AS region_name
+    FROM drivers d
+    LEFT JOIN regions r ON d.region_id = r.id
+    ORDER BY d.id DESC
+  `).all();
   res.json(drivers);
 });
 
@@ -22,12 +27,12 @@ router.get("/:id", (req, res) => {
 
 // POST /drivers — Create driver
 router.post("/", requireFields(["name", "license_expiry"]), (req, res) => {
-  const { name, license_type, license_expiry } = req.body;
+  const { name, license_type, license_expiry, region_id } = req.body;
 
   const result = db.prepare(
-    `INSERT INTO drivers (name, license_type, license_expiry)
-     VALUES (?, ?, ?)`
-  ).run(name, license_type || null, license_expiry);
+    `INSERT INTO drivers (name, license_type, license_expiry, region_id)
+     VALUES (?, ?, ?, ?)`
+  ).run(name, license_type || null, license_expiry, region_id || null);
 
   const driver = db.prepare("SELECT * FROM drivers WHERE id = ?").get(result.lastInsertRowid);
   res.status(201).json(driver);
@@ -40,7 +45,7 @@ router.put("/:id", (req, res) => {
     return res.status(404).json({ error: "Driver not found" });
   }
 
-  const { name, license_type, license_expiry, status } = req.body;
+  const { name, license_type, license_expiry, status, region_id } = req.body;
 
   if (status && !VALID_STATUSES.includes(status)) {
     return res.status(400).json({
@@ -53,13 +58,15 @@ router.put("/:id", (req, res) => {
       name = COALESCE(?, name),
       license_type = COALESCE(?, license_type),
       license_expiry = COALESCE(?, license_expiry),
-      status = COALESCE(?, status)
+      status = COALESCE(?, status),
+      region_id = COALESCE(?, region_id)
      WHERE id = ?`
   ).run(
     name || null,
     license_type || null,
     license_expiry || null,
     status || null,
+    region_id || null,
     req.params.id
   );
 

@@ -1,5 +1,19 @@
 -- FleetFlow Schema with CHECK constraints and timestamps
 
+CREATE TABLE IF NOT EXISTS regions (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT UNIQUE NOT NULL,
+  created_at TEXT DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS users (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  email TEXT UNIQUE NOT NULL,
+  role TEXT NOT NULL CHECK(role IN ('Manager', 'Dispatcher')),
+  created_at TEXT DEFAULT (datetime('now'))
+);
+
 CREATE TABLE IF NOT EXISTS vehicles (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   model TEXT NOT NULL,
@@ -9,7 +23,9 @@ CREATE TABLE IF NOT EXISTS vehicles (
   odometer REAL DEFAULT 0,
   acquisition_cost REAL DEFAULT 0,
   status TEXT DEFAULT 'Available' CHECK(status IN ('Available', 'OnTrip', 'InShop', 'Retired')),
-  created_at TEXT DEFAULT (datetime('now'))
+  region_id INTEGER,
+  created_at TEXT DEFAULT (datetime('now')),
+  FOREIGN KEY(region_id) REFERENCES regions(id)
 );
 
 CREATE TABLE IF NOT EXISTS drivers (
@@ -18,7 +34,9 @@ CREATE TABLE IF NOT EXISTS drivers (
   license_type TEXT,
   license_expiry TEXT,
   status TEXT DEFAULT 'OnDuty' CHECK(status IN ('OnDuty', 'OffDuty', 'OnTrip', 'Suspended')),
-  created_at TEXT DEFAULT (datetime('now'))
+  region_id INTEGER,
+  created_at TEXT DEFAULT (datetime('now')),
+  FOREIGN KEY(region_id) REFERENCES regions(id)
 );
 
 CREATE TABLE IF NOT EXISTS trips (
@@ -32,9 +50,13 @@ CREATE TABLE IF NOT EXISTS trips (
   end_odometer REAL,
   revenue REAL DEFAULT 0,
   status TEXT DEFAULT 'Draft' CHECK(status IN ('Draft', 'Dispatched', 'Completed', 'Cancelled')),
+  origin_region_id INTEGER,
+  destination_region_id INTEGER,
   created_at TEXT DEFAULT (datetime('now')),
   FOREIGN KEY(vehicle_id) REFERENCES vehicles(id),
-  FOREIGN KEY(driver_id) REFERENCES drivers(id)
+  FOREIGN KEY(driver_id) REFERENCES drivers(id),
+  FOREIGN KEY(origin_region_id) REFERENCES regions(id),
+  FOREIGN KEY(destination_region_id) REFERENCES regions(id)
 );
 
 CREATE TABLE IF NOT EXISTS fuel_logs (

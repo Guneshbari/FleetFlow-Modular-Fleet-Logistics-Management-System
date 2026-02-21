@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const db = require("../db");
 const { requireFields } = require("../middleware/validate");
+const { requireRole } = require("../middleware/auth");
 
 // GET /trips — List all trips
 router.get("/", (req, res) => {
@@ -31,10 +32,10 @@ router.get("/:id", (req, res) => {
   res.json(trip);
 });
 
-// POST /trips — Create trip (Draft)
+// POST /trips — Create trip (Draft) - Dispatcher Only
 // Business rules: capacity check, vehicle Available, driver OnDuty, license not expired
-router.post("/", requireFields(["vehicle_id", "driver_id", "cargo_weight"]), (req, res) => {
-  const { vehicle_id, driver_id, cargo_weight, start_location, end_location, revenue } = req.body;
+router.post("/", requireRole(["Dispatcher"]), requireFields(["vehicle_id", "driver_id", "cargo_weight"]), (req, res) => {
+  const { vehicle_id, driver_id, cargo_weight, start_location, end_location, revenue, origin_region_id, destination_region_id } = req.body;
 
   // Fetch vehicle
   const vehicle = db.prepare("SELECT * FROM vehicles WHERE id = ?").get(vehicle_id);
@@ -78,17 +79,17 @@ router.post("/", requireFields(["vehicle_id", "driver_id", "cargo_weight"]), (re
   }
 
   const result = db.prepare(
-    `INSERT INTO trips (vehicle_id, driver_id, cargo_weight, start_location, end_location, start_odometer, revenue)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`
-  ).run(vehicle_id, driver_id, cargo_weight, start_location || null, end_location || null, vehicle.odometer, revenue || 0);
+    `INSERT INTO trips (vehicle_id, driver_id, cargo_weight, start_location, end_location, start_odometer, revenue, origin_region_id, destination_region_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  ).run(vehicle_id, driver_id, cargo_weight, start_location || null, end_location || null, vehicle.odometer, revenue || 0, origin_region_id || null, destination_region_id || null);
 
   const trip = db.prepare("SELECT * FROM trips WHERE id = ?").get(result.lastInsertRowid);
   res.status(201).json(trip);
 });
 
-// PATCH /trips/:id/dispatch — Dispatch a trip
+// PATCH /trips/:id/dispatch — Dispatch a trip - Dispatcher Only
 // Transaction: trip → Dispatched, vehicle → OnTrip, driver → OnTrip
-router.patch("/:id/dispatch", (req, res) => {
+router.patch("/:id/dispatch", requireRole(["Dispatcher"]), (req, res) => {
   const trip = db.prepare("SELECT * FROM trips WHERE id = ?").get(req.params.id);
   if (!trip) {
     return res.status(404).json({ error: "Trip not found" });
@@ -112,9 +113,9 @@ router.patch("/:id/dispatch", (req, res) => {
   res.json({ message: "Trip dispatched successfully", trip: updated });
 });
 
-// PATCH /trips/:id/complete — Complete a trip
+// PATCH /trips/:id/complete — Complete a trip - Dispatcher Only
 // Transaction: trip → Completed, vehicle → Available + odometer update, driver → OnDuty
-router.patch("/:id/complete", (req, res) => {
+router.patch("/:id/complete", requireRole(["Dispatcher"]), (req, res) => {
   const trip = db.prepare("SELECT * FROM trips WHERE id = ?").get(req.params.id);
   if (!trip) {
     return res.status(404).json({ error: "Trip not found" });
@@ -150,9 +151,9 @@ router.patch("/:id/complete", (req, res) => {
   res.json({ message: "Trip completed successfully", trip: updated });
 });
 
-// PATCH /trips/:id/cancel — Cancel a trip
+// PATCH /trips/:id/cancel — Cancel a trip - Dispatcher Only
 // Transaction: if Dispatched, revert vehicle → Available, driver → OnDuty
-router.patch("/:id/cancel", (req, res) => {
+router.patch("/:id/cancel", requireRole(["Dispatcher"]), (req, res) => {
   const trip = db.prepare("SELECT * FROM trips WHERE id = ?").get(req.params.id);
   if (!trip) {
     return res.status(404).json({ error: "Trip not found" });
