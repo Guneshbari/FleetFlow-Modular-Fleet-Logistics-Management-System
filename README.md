@@ -9,8 +9,6 @@
 
 FleetFlow is a comprehensive, rule-based digital hub for transportation companies to govern their vehicle fleet, optimize operational lifecycles, and track detailed financial performance.
 
-![Dashboard Preview](./screenshots/e2e_demo.webp)
-
 ## 🚀 Key Features
 
 ### 🏢 Four-Role RBAC System
