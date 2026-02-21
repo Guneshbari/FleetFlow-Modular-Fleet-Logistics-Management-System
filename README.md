@@ -292,12 +292,24 @@ flowchart LR
 
 ## ⚙️ Getting Started
 
-### Prerequisites
+### Prerequisites & Tech Stack Versions
 
-- [Node.js](https://nodejs.org/) v20 or higher
-- npm (Node Package Manager)
+This project uses the following specific versions for maximum compatibility:
 
-### Installation
+- **Node.js:** v20.20.0 or higher.
+- **Frontend:** React `18.3.1`, Vite `6.3.5`, TailwindCSS `v4.1.12`.
+- **Backend:** Express `5.2.1`, SQLite3 (`better-sqlite3` `12.6.2`).
+- **Package Manager:** npm (Node Package Manager).
+
+> **🛠️ Troubleshooting Node.js Version:** If you encounter syntax errors (like `await is only valid in async functions`) or module errors when running the backend, it's highly likely due to an outdated Node.js version. We strongly recommend using **[NVM (Node Version Manager)](https://github.com/nvm-sh/nvm)** (or [nvm-windows](https://github.com/coreybutler/nvm-windows)) to easily switch to the correct version without breaking your local environment:
+>
+> ```bash
+> nvm install 20
+> nvm use 20
+> node -v # Should print v20.x.x
+> ```
+
+### Installation & Easy Setup
 
 1. **Clone the repository:**
 
@@ -306,13 +318,22 @@ flowchart LR
    cd FleetFlow
    ```
 
-2. **Set up the Backend:**
+2. **Set up the Backend & Environment Variables:**
+
+   Before starting the backend, we need to initialize the environment variables. The repository includes an `.env.example` file to make this foolproof.
 
    ```bash
    cd backend
+
+   # Copy the example file to create your active .env file:
+   cp .env.example .env
+
+   # Install dependencies
    npm install
-   # Seed the database with demo users, vehicles, and trips:
+
+   # Seed the SQLite database with demo users, vehicles, and trips:
    node seed2.js
+
    # Start the Express server (runs on port 5000):
    npm run dev
    ```
