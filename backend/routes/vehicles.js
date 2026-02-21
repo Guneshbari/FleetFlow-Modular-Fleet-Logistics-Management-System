@@ -6,9 +6,22 @@ const { requireFields } = require("../middleware/validate");
 // Valid statuses for manual updates
 const VALID_STATUSES = ["Available", "OnTrip", "InShop", "Retired"];
 
-// GET /vehicles — List all vehicles
+// GET /vehicles — List all vehicles (supports ?type=Van&status=Available filters)
 router.get("/", (req, res) => {
-  const vehicles = db.prepare("SELECT * FROM vehicles ORDER BY id DESC").all();
+  let query = "SELECT * FROM vehicles WHERE 1=1";
+  const params = [];
+
+  if (req.query.type) {
+    query += " AND type = ?";
+    params.push(req.query.type);
+  }
+  if (req.query.status) {
+    query += " AND status = ?";
+    params.push(req.query.status);
+  }
+
+  query += " ORDER BY id DESC";
+  const vehicles = db.prepare(query).all(...params);
   res.json(vehicles);
 });
 
@@ -23,13 +36,13 @@ router.get("/:id", (req, res) => {
 
 // POST /vehicles — Create vehicle
 router.post("/", requireFields(["model", "license_plate", "max_capacity"]), (req, res) => {
-  const { model, license_plate, max_capacity, odometer, acquisition_cost } = req.body;
+  const { model, type, license_plate, max_capacity, odometer, acquisition_cost } = req.body;
 
   try {
     const result = db.prepare(
-      `INSERT INTO vehicles (model, license_plate, max_capacity, odometer, acquisition_cost)
-       VALUES (?, ?, ?, ?, ?)`
-    ).run(model, license_plate, max_capacity, odometer || 0, acquisition_cost || 0);
+      `INSERT INTO vehicles (model, type, license_plate, max_capacity, odometer, acquisition_cost)
+       VALUES (?, ?, ?, ?, ?, ?)`
+    ).run(model, type || 'Truck', license_plate, max_capacity, odometer || 0, acquisition_cost || 0);
 
     const vehicle = db.prepare("SELECT * FROM vehicles WHERE id = ?").get(result.lastInsertRowid);
     res.status(201).json(vehicle);
@@ -48,7 +61,7 @@ router.put("/:id", (req, res) => {
     return res.status(404).json({ error: "Vehicle not found" });
   }
 
-  const { model, license_plate, max_capacity, odometer, acquisition_cost, status } = req.body;
+  const { model, type, license_plate, max_capacity, odometer, acquisition_cost, status } = req.body;
 
   // Validate status if provided
   if (status && !VALID_STATUSES.includes(status)) {
@@ -61,6 +74,7 @@ router.put("/:id", (req, res) => {
     db.prepare(
       `UPDATE vehicles SET
         model = COALESCE(?, model),
+        type = COALESCE(?, type),
         license_plate = COALESCE(?, license_plate),
         max_capacity = COALESCE(?, max_capacity),
         odometer = COALESCE(?, odometer),
@@ -69,6 +83,7 @@ router.put("/:id", (req, res) => {
        WHERE id = ?`
     ).run(
       model || null,
+      type || null,
       license_plate || null,
       max_capacity || null,
       odometer != null ? odometer : null,

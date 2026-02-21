@@ -3,6 +3,7 @@
 CREATE TABLE IF NOT EXISTS vehicles (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   model TEXT NOT NULL,
+  type TEXT DEFAULT 'Truck' CHECK(type IN ('Truck', 'Van', 'Bike', 'Car', 'Other')),
   license_plate TEXT UNIQUE NOT NULL,
   max_capacity REAL NOT NULL,
   odometer REAL DEFAULT 0,
@@ -16,7 +17,7 @@ CREATE TABLE IF NOT EXISTS drivers (
   name TEXT NOT NULL,
   license_type TEXT,
   license_expiry TEXT,
-  status TEXT DEFAULT 'OnDuty' CHECK(status IN ('OnDuty', 'OnTrip', 'Suspended')),
+  status TEXT DEFAULT 'OnDuty' CHECK(status IN ('OnDuty', 'OffDuty', 'OnTrip', 'Suspended')),
   created_at TEXT DEFAULT (datetime('now'))
 );
 

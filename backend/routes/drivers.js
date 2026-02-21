@@ -3,7 +3,7 @@ const router = express.Router();
 const db = require("../db");
 const { requireFields } = require("../middleware/validate");
 
-const VALID_STATUSES = ["OnDuty", "OnTrip", "Suspended"];
+const VALID_STATUSES = ["OnDuty", "OffDuty", "OnTrip", "Suspended"];
 
 // GET /drivers — List all drivers
 router.get("/", (req, res) => {
