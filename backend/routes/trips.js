@@ -115,7 +115,7 @@ router.patch("/:id/dispatch", requireRole(["Manager", "Dispatcher"]), (req, res)
 
 // PATCH /trips/:id/complete — Complete a trip - Dispatcher Only
 // Transaction: trip → Completed, vehicle → Available + odometer update, driver → OnDuty
-router.patch("/:id/complete", requireRole(["Dispatcher"]), (req, res) => {
+router.patch("/:id/complete", requireRole(["Manager", "Dispatcher"]), (req, res) => {
   const trip = db.prepare("SELECT * FROM trips WHERE id = ?").get(req.params.id);
   if (!trip) {
     return res.status(404).json({ error: "Trip not found" });
@@ -153,7 +153,7 @@ router.patch("/:id/complete", requireRole(["Dispatcher"]), (req, res) => {
 
 // PATCH /trips/:id/cancel — Cancel a trip - Dispatcher Only
 // Transaction: if Dispatched, revert vehicle → Available, driver → OnDuty
-router.patch("/:id/cancel", requireRole(["Dispatcher"]), (req, res) => {
+router.patch("/:id/cancel", requireRole(["Manager", "Dispatcher"]), (req, res) => {
   const trip = db.prepare("SELECT * FROM trips WHERE id = ?").get(req.params.id);
   if (!trip) {
     return res.status(404).json({ error: "Trip not found" });
