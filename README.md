@@ -26,7 +26,7 @@ A robust Role-Based Access Control system granting precise permissions for 4 dis
 - Interactive filtering by Vehicle Type, Status, and Region.
 - Beautiful, auto-updating charts for monthly revenue trends and regional distributions.
 
-![Analytics Layout](./screenshots/analytics_page.png)
+![Analytics Layout](./screenshots/analytics_page.png?v=2)
 
 ### 🚛 Intelligent Trip Dispatcher
 
@@ -45,7 +45,7 @@ A robust Role-Based Access Control system granting precise permissions for 4 dis
 
 - **CSV & PDF Exports:** Instantly generate downloadable CSV and PDF reports outlining vehicle performance, total distances, revenue, and Calculated ROI.
 
-![Login Page](./screenshots/login_page.png)
+![Login Page](./screenshots/login_page.png?v=2)
 
 ---
 
@@ -369,4 +369,4 @@ FleetFlow is designed with automated and manual verification in mind. End-to-End
 
 _E2E Testing is natively supported. You can utilize platforms like Playwright or Cypress to script integrations against the defined roles and validation parameters._
 
-![Dashboard View](./screenshots/dashboard_page.png)
+![Dashboard View](./screenshots/dashboard_page.png?v=2)
