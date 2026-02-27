@@ -29,7 +29,9 @@ export function DashboardPage() {
   const [filterRegion, setFilterRegion] = useState('all');
 
   useEffect(() => {
-    async function load() {
+    let mounted = true;
+    async function load(isBackground = false) {
+      if (!isBackground) setLoading(true);
       try {
         const [summaryData, tripsData, vehiclesData, regionsData] = await Promise.all([
           api.analytics.summary().catch(() => null),
@@ -37,6 +39,7 @@ export function DashboardPage() {
           api.vehicles.list().catch(() => []),
           api.regions.list().catch(() => []),
         ]);
+        if (!mounted) return;
         setSummary(summaryData);
         setTrips(Array.isArray(tripsData) ? tripsData.slice(0, 10) : []);
         setVehicles(Array.isArray(vehiclesData) ? vehiclesData : []);
@@ -44,10 +47,25 @@ export function DashboardPage() {
       } catch (e) {
         console.error('Dashboard load error:', e);
       } finally {
-        setLoading(false);
+        if (mounted) setLoading(false);
       }
     }
     load();
+
+    // Auto-refresh every 15 seconds
+    const interval = setInterval(() => {
+      load(true);
+    }, 15000);
+
+    // Refresh immediately when tab regains focus
+    const onFocus = () => load(true);
+    window.addEventListener('focus', onFocus);
+
+    return () => {
+      mounted = false;
+      clearInterval(interval);
+      window.removeEventListener('focus', onFocus);
+    };
   }, []);
 
   if (loading) {
@@ -94,7 +112,7 @@ export function DashboardPage() {
     <div className="space-y-6">
       {/* Filter Bar */}
       <div className="bg-card border border-border rounded-[14px] p-4 transition-colors duration-300">
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center gap-3 lg:gap-4">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Filter className="w-4 h-4" />
             <span className="font-medium">Filters:</span>
@@ -150,7 +168,7 @@ export function DashboardPage() {
       </div>
 
       {/* Primary Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
         <StatCard
           title="Active Fleet"
           value={String(totalVehicles)}
@@ -182,7 +200,7 @@ export function DashboardPage() {
       </div>
 
       {/* Secondary Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
         <div className="bg-card border border-border rounded-[14px] p-5 transition-colors duration-300">
           <div className="flex items-center gap-3 mb-2">
             <div className="w-8 h-8 bg-[#22C55E]/10 rounded-lg flex items-center justify-center">

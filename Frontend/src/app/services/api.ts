@@ -184,6 +184,21 @@ export const regions = {
   list: () => request('GET', '/regions'),
 };
 
+// ── Admin (Super Admin only) ──────────────────────────────────────
+export const admin = {
+  stats: () => request('GET', '/admin/stats'),
+  listUsers: () => request('GET', '/admin/users'),
+  changeRole: (userId: number, role: string) => request('PUT', `/admin/users/${userId}/role`, { role }),
+  createUser: (data: { name: string; email: string; password: string; role: string }) =>
+    request('POST', '/admin/users', data),
+  deleteUser: (userId: number) => request('DELETE', `/admin/users/${userId}`),
+  listPermissions: (userId: number) => request('GET', `/admin/users/${userId}/permissions`),
+  grantPermission: (userId: number, permission: string) =>
+    request('POST', `/admin/users/${userId}/permissions`, { permission }),
+  revokePermission: (userId: number, permId: number) =>
+    request('DELETE', `/admin/users/${userId}/permissions/${permId}`),
+};
+
 // Default export
-const api = { auth, vehicles, drivers, trips, fuel, maintenance, analytics, regions, setRole, getStoredRole, ApiError };
+const api = { auth, vehicles, drivers, trips, fuel, maintenance, analytics, regions, admin, setRole, getStoredRole, ApiError };
 export default api;

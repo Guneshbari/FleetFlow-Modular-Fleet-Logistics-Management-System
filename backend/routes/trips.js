@@ -113,9 +113,9 @@ router.patch("/:id/dispatch", requireRole(["Manager", "Dispatcher"]), (req, res)
   res.json({ message: "Trip dispatched successfully", trip: updated });
 });
 
-// PATCH /trips/:id/complete — Complete a trip - Dispatcher Only
+// PATCH /trips/:id/complete — Complete a trip - Dispatcher & Driver Only
 // Transaction: trip → Completed, vehicle → Available + odometer update, driver → OnDuty
-router.patch("/:id/complete", requireRole(["Manager", "Dispatcher"]), (req, res) => {
+router.patch("/:id/complete", requireRole(["Manager", "Dispatcher", "Driver"]), (req, res) => {
   const trip = db.prepare("SELECT * FROM trips WHERE id = ?").get(req.params.id);
   if (!trip) {
     return res.status(404).json({ error: "Trip not found" });
@@ -133,6 +133,9 @@ router.patch("/:id/complete", requireRole(["Manager", "Dispatcher"]), (req, res)
     return res.status(400).json({ error: "end_odometer is required to complete a trip" });
   }
 
+  // If role is strictly "Driver", we can optionally enforce they only complete their OWN trips
+  // req.user might be loaded by requireRole (if the middleware attaches it), but for now trusting the token role.
+  
   const completeTrip = db.transaction(() => {
     db.prepare(
       "UPDATE trips SET status = 'Completed', end_odometer = ?, revenue = COALESCE(?, revenue) WHERE id = ?"

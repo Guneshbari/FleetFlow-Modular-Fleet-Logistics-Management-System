@@ -35,6 +35,7 @@ function authenticateToken(req, res, next) {
 
 /**
  * RBAC Middleware — checks req.userRole against allowed roles.
+ * Super Admin bypasses all role checks.
  * Must be used AFTER authenticateToken.
  */
 function requireRole(allowedRoles) {
@@ -43,6 +44,11 @@ function requireRole(allowedRoles) {
 
     if (!role) {
       return res.status(401).json({ error: "Authentication required" });
+    }
+
+    // Super Admin bypasses all RBAC
+    if (role === "Super Admin") {
+      return next();
     }
 
     if (!allowedRoles.includes(role)) {
@@ -55,4 +61,18 @@ function requireRole(allowedRoles) {
   };
 }
 
-module.exports = { authenticateToken, requireRole };
+/**
+ * Super Admin Only Middleware.
+ * Must be used AFTER authenticateToken.
+ */
+function requireSuperAdmin(req, res, next) {
+  if (!req.userRole) {
+    return res.status(401).json({ error: "Authentication required" });
+  }
+  if (req.userRole !== "Super Admin") {
+    return res.status(403).json({ error: "Super Admin access required" });
+  }
+  next();
+}
+
+module.exports = { authenticateToken, requireRole, requireSuperAdmin };

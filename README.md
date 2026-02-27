@@ -11,14 +11,24 @@ FleetFlow is a comprehensive, rule-based digital hub for transportation companie
 
 ## 🚀 Key Features
 
-### 🏢 Four-Role RBAC System
+### 🏢 Six-Role RBAC System
 
-A robust Role-Based Access Control system granting precise permissions for 4 distinct user profiles:
+A robust Role-Based Access Control system granting precise permissions for 6 distinct user profiles:
+
+- **Super Admin:** Unrestricted system access, user management, and global configuration control.
 
 - **Fleet Manager:** Global oversight, vehicle health, lifecycle tracking, and financial analytics.
 - **Dispatcher:** Real-time trip creation, assignment logistics, and cargo capacity validation.
 - **Safety Officer:** Driver compliance tracking, license expiry validation, and safety scoring.
 - **Financial Analyst:** Complete financial visibility, operational costs (fuel + maintenance), and ROI analysis.
+- **Driver:** Dedicated mobile-friendly portal to view dispatched trips, update status, and confirm delivery completions with final odometer readings.
+
+### 📱 Responsive Design & Cross-Device Support
+
+- Fully responsive mobile-first UI scaling seamlessly from smartphones to 4K desktops.
+- Collapsible sidebar with intuitive hamburger menu for mobile navigation.
+- Smart data tables wrapped in horizontal scroll containers to prevent breakage on tiny screens.
+- Context-aware layouts stack elements logically based on device width.
 
 ### 📊 Real-Time Analytics & Dashboard
 
@@ -43,7 +53,8 @@ A robust Role-Based Access Control system granting precise permissions for 4 dis
 
 ### 📑 Reporting & Exports
 
-- **CSV & PDF Exports:** Instantly generate downloadable CSV and PDF reports outlining vehicle performance, total distances, revenue, and Calculated ROI.
+- **CSV Exports:** Instantly generate downloadable CSV reports outlining vehicle data, logs, and rosters.
+- **Formal Audit PDF Report:** Generates a structured, multi-page formal audit document complete with headers/footers, financial charts, vehicle history, driver rosters, and trip logs dynamically formatted to avoid page clipping.
 
 ![Login Page](./screenshots/login_page.png?v=2)
 
@@ -86,7 +97,7 @@ graph TB
     subgraph Application["⚙️ Application Layer — Backend"]
         API["Express.js REST API"]
         Auth["JWT Auth Middleware"]
-        RBAC["RBAC Middleware (4 Roles)"]
+        RBAC["RBAC Middleware (6 Roles)"]
         Routes["Route Modules"]
         ErrHandler["Error Handler Middleware"]
         API --> Auth --> RBAC --> Routes
@@ -122,7 +133,7 @@ erDiagram
         text name
         text email UK
         text password_hash
-        text role "Manager | Dispatcher | Safety Officer | Financial Analyst"
+        text role "Super Admin | Manager | Dispatcher | Safety Officer | Financial Analyst | Driver"
     }
 
     REGIONS {
@@ -351,12 +362,14 @@ This project uses the following specific versions for maximum compatibility:
 
 ### 🔐 Demo Credentials
 
-The `seed2.js` script provisions the following users to easily explore the 4-role RBAC system:
+The `seed2.js` script provisions the following users to easily explore the 6-role RBAC system:
 
+- **Super Admin:** `superadmin@fleetflow.com` / `admin123`
 - **Fleet Manager:** `admin@fleetflow.com` / `admin123`
 - **Dispatcher:** `jane@fleetflow.com` / `jane123`
 - **Safety Officer:** `sara@fleetflow.com` / `sara123`
 - **Financial Analyst:** `frank@fleetflow.com` / `frank123`
+- **Driver:** `john@driver.com` / `driver123`
 
 ---
 

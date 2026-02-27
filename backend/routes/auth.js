@@ -17,9 +17,14 @@ router.post("/signup", (req, res) => {
   }
 
   // Validate role
-  const VALID_ROLES = ["Manager", "Dispatcher", "Safety Officer", "Financial Analyst"];
+  const VALID_ROLES = ["Manager", "Dispatcher", "Safety Officer", "Financial Analyst", "Driver"];
   if (!VALID_ROLES.includes(role)) {
     return res.status(400).json({ error: `Role must be one of: ${VALID_ROLES.join(", ")}` });
+  }
+
+  // Block Super Admin creation via public signup
+  if (role === "Super Admin") {
+    return res.status(403).json({ error: "Super Admin accounts cannot be created via signup" });
   }
 
   // Validate password strength

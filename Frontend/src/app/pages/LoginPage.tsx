@@ -66,7 +66,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
   };
 
   return (
-    <div className="min-h-screen flex relative">
+    <div className="min-h-screen flex flex-col lg:flex-row relative">
       {/* Theme Toggle */}
       <button
         onClick={toggleTheme}
@@ -80,7 +80,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
         )}
       </button>
       {/* Left Side - Form */}
-      <div className="w-1/2 bg-background flex items-center justify-center p-8">
+      <div className="w-full lg:w-1/2 bg-background flex items-center justify-center p-4 sm:p-8 min-h-screen lg:min-h-0">
         <div className="w-full max-w-md">
           {/* Logo */}
           <div className="flex items-center gap-2 mb-8">
@@ -255,8 +255,8 @@ export function LoginPage({ onLogin }: LoginPageProps) {
         </div>
       </div>
 
-      {/* Right Side - Branding */}
-      <div className="w-1/2 bg-card flex items-center justify-center p-8 transition-colors duration-300">
+      {/* Right Side - Branding (hidden on mobile) */}
+      <div className="hidden lg:flex w-1/2 bg-card items-center justify-center p-8 transition-colors duration-300">
         <div className="max-w-lg text-center">
           <div className="mb-6">
             <div className="w-32 h-32 bg-[#22C55E]/10 rounded-full flex items-center justify-center mx-auto mb-6">

@@ -9,10 +9,12 @@ import { MaintenancePage } from './pages/MaintenancePage';
 import { ExpensesPage } from './pages/ExpensesPage';
 import { DriversPage } from './pages/DriversPage';
 import { AnalyticsPage } from './pages/AnalyticsPage';
+import { DriverDashboardPage } from './pages/DriverDashboardPage';
+import { SuperAdminPage } from './pages/SuperAdminPage';
 import { useTheme } from './context/ThemeContext';
 import api from './services/api';
 
-type Page = 'login' | 'dashboard' | 'vehicles' | 'trips' | 'maintenance' | 'expenses' | 'drivers' | 'analytics';
+type Page = 'login' | 'dashboard' | 'vehicles' | 'trips' | 'maintenance' | 'expenses' | 'drivers' | 'analytics' | 'driver-dashboard' | 'super-admin';
 
 const pageConfig = {
   dashboard: { title: 'Dashboard', component: DashboardPage },
@@ -22,6 +24,8 @@ const pageConfig = {
   expenses: { title: 'Trip & Expense Logging', component: ExpensesPage },
   drivers: { title: 'Driver Performance & Safety', component: DriversPage },
   analytics: { title: 'Analytics & Financial Reports', component: AnalyticsPage },
+  'driver-dashboard': { title: 'My Deliveries', component: DriverDashboardPage },
+  'super-admin': { title: 'Admin Panel', component: SuperAdminPage },
 };
 
 export default function App() {
@@ -29,6 +33,7 @@ export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<{ id: number; name: string; email: string; role: string } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const { theme } = useTheme();
 
   // Auto-resume session from stored JWT token
@@ -39,7 +44,7 @@ export default function App() {
           const result = await api.auth.me();
           setUser(result.user);
           setIsAuthenticated(true);
-          setCurrentPage('dashboard');
+          setCurrentPage(result.user.role === 'Driver' ? 'driver-dashboard' : 'dashboard');
         } catch {
           // Token expired or invalid — stay on login
           api.auth.logout();
@@ -53,7 +58,7 @@ export default function App() {
   const handleLogin = (userData: { id: number; name: string; email: string; role: string }) => {
     setUser(userData);
     setIsAuthenticated(true);
-    setCurrentPage('dashboard');
+    setCurrentPage(userData.role === 'Driver' ? 'driver-dashboard' : 'dashboard');
   };
 
   const handleLogout = () => {
@@ -92,15 +97,27 @@ export default function App() {
   return (
     <div className={`${theme} min-h-screen bg-background transition-colors duration-300`}>
       {/* Sidebar */}
-      <AppSidebar currentPage={currentPage} onNavigate={handleNavigate} userRole={user?.role} />
+      <AppSidebar
+        currentPage={currentPage}
+        onNavigate={handleNavigate}
+        userRole={user?.role}
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+      />
 
-      {/* Main Content */}
-      <div className="ml-[260px]">
+      {/* Main Content — push right on desktop, full-width on mobile */}
+      <div className="lg:ml-[260px] min-h-screen transition-[margin] duration-300">
         {/* Header */}
-        <AppHeader title={config?.title || 'Dashboard'} user={user} onLogout={handleLogout} />
+        <AppHeader
+          title={config?.title || 'Dashboard'}
+          user={user}
+          onLogout={handleLogout}
+          onNavigate={handleNavigate}
+          onToggleSidebar={() => setSidebarOpen(prev => !prev)}
+        />
 
         {/* Page Content */}
-        <main className="p-8">
+        <main className="p-4 lg:p-8">
           {PageComponent && <PageComponent />}
         </main>
       </div>

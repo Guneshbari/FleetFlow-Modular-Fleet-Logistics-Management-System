@@ -14,6 +14,7 @@ const fuelRoutes = require("./routes/fuel");
 const maintenanceRoutes = require("./routes/maintenance");
 const analyticsRoutes = require("./routes/analytics");
 const regionRoutes = require("./routes/regions");
+const adminRoutes = require("./routes/admin");
 
 const app = express();
 
@@ -37,6 +38,7 @@ app.use("/fuel", authenticateToken, fuelRoutes);
 app.use("/maintenance", authenticateToken, maintenanceRoutes);
 app.use("/analytics", authenticateToken, analyticsRoutes);
 app.use("/regions", authenticateToken, regionRoutes);
+app.use("/admin", authenticateToken, adminRoutes);
 
 // Centralized error handler (must be last)
 app.use(errorHandler);
@@ -45,5 +47,5 @@ const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
   console.log(`FleetFlow API running on http://localhost:${PORT}`);
-  console.log("Routes: /auth, /vehicles, /drivers, /trips, /fuel, /maintenance, /analytics, /regions");
+  console.log("Routes: /auth, /vehicles, /drivers, /trips, /fuel, /maintenance, /analytics, /regions, /admin");
 });

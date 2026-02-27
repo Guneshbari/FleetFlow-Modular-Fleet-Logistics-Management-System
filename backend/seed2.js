@@ -8,6 +8,7 @@ const bcrypt = require("bcryptjs");
 
 // Wipe existing data in correct FK order
 console.log("Clearing existing data...");
+db.exec("DELETE FROM permissions");
 db.exec("DELETE FROM fuel_logs");
 db.exec("DELETE FROM maintenance_logs");
 db.exec("DELETE FROM trips");
@@ -27,11 +28,13 @@ console.log("Seeding users...");
 const insertUser = db.prepare("INSERT INTO users (name, email, password_hash, role) VALUES (?, ?, ?, ?)");
 const hash = (pw) => bcrypt.hashSync(pw, 10);
 
+insertUser.run("Super Admin", "superadmin@fleetflow.com", hash("superadmin123"), "Super Admin");
 insertUser.run("Admin Manager", "admin@fleetflow.com", hash("admin123"), "Manager");
 insertUser.run("Jane Dispatcher", "jane@fleetflow.com", hash("jane123"), "Dispatcher");
 insertUser.run("Bob Manager", "bob@fleetflow.com", hash("bob123"), "Manager");
 insertUser.run("Sara Safety", "sara@fleetflow.com", hash("sara123"), "Safety Officer");
 insertUser.run("Frank Finance", "frank@fleetflow.com", hash("frank123"), "Financial Analyst");
+insertUser.run("John Driver", "john@driver.com", hash("driver123"), "Driver");
 
 console.log("Seeding vehicles...");
 const insertVehicle = db.prepare(
@@ -168,14 +171,17 @@ db.prepare("UPDATE vehicles SET status = 'InShop' WHERE id = 7").run();
 
 console.log("\n✅ Seed complete!");
 console.log("   Regions:     4");
-console.log("   Users:       5");
+console.log("   Users:       7  (1 Super Admin, 2 Manager, 1 Dispatcher, 1 Safety, 1 Finance, 1 Driver)");
 console.log("   Vehicles:   12");
 console.log("   Drivers:    10");
 console.log("   Trips:      16  (10 Completed, 2 Dispatched, 2 Draft, 2 Cancelled)");
 console.log("   Fuel logs:  20");
 console.log("   Maint logs: 12");
 console.log("\nLogin credentials:");
+console.log("   Super Admin:        superadmin@fleetflow.com / superadmin123");
 console.log("   Fleet Manager:      admin@fleetflow.com / admin123");
 console.log("   Dispatcher:         jane@fleetflow.com  / jane123");
 console.log("   Safety Officer:     sara@fleetflow.com  / sara123");
 console.log("   Financial Analyst:  frank@fleetflow.com / frank123");
+console.log("   Driver:             john@driver.com     / driver123");
+
