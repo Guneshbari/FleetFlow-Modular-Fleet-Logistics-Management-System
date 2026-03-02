@@ -91,8 +91,14 @@ export function ExpensesPage() {
   // Compute stats
   const totalFuelCost = fuelLogs.reduce((sum, l) => sum + (l.cost || 0), 0);
   const totalLiters = fuelLogs.reduce((sum, l) => sum + (l.liters || 0), 0);
-  const avgEfficiency = fuelLogs.filter(l => l.efficiency).length > 0
-    ? (fuelLogs.reduce((sum, l) => sum + (l.efficiency || 0), 0) / fuelLogs.filter(l => l.efficiency).length).toFixed(1)
+  // Weighted average: total_distance / total_liters (reconstructing distance as efficiency × liters)
+  const totalWeightedDistance = fuelLogs.reduce((sum, l) => {
+    if (l.efficiency && l.liters) return sum + (l.efficiency * l.liters);
+    return sum;
+  }, 0);
+  const efficiencyLiters = fuelLogs.filter(l => l.efficiency && l.liters).reduce((sum, l) => sum + l.liters, 0);
+  const avgEfficiency = efficiencyLiters > 0 && totalWeightedDistance > 0
+    ? (totalWeightedDistance / efficiencyLiters).toFixed(1)
     : '—';
   const totalMaintenanceCost = maintenanceLogs.reduce((sum, l) => sum + (l.cost || 0), 0);
   const totalOperational = totalFuelCost + totalMaintenanceCost;

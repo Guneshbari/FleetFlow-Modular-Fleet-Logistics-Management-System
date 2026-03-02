@@ -462,7 +462,7 @@ export function AnalyticsPage() {
           title="Fleet Utilization"
           value={`${utilization.toFixed(1)}%`}
           icon={Truck}
-          trend={{ value: `${onTrip} of ${totalVehicles} on trip`, positive: utilization > 10 }}
+          trend={{ value: `${onTrip} of ${kpis.active_fleet || totalVehicles} active, on trip`, positive: utilization > 10 }}
           color="blue"
         />
       </div>

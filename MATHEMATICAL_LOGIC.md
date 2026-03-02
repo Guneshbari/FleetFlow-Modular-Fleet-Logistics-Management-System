@@ -34,13 +34,14 @@ Utilization Rate = (Vehicles OnTrip / Active Fleet) × 100
 
 ### 1.3 Regional Utilization Rate (%)
 
-Per-region utilization follows the same formula applied to each region's vehicle subset:
+Per-region utilization follows the same formula applied to each region's vehicle subset, **excluding Retired vehicles** (consistent with fleet-wide utilization):
 
 ```
-Regional Utilization = (Vehicles OnTrip in Region / Total Vehicles in Region) × 100
+Active Vehicles in Region = Total Vehicles in Region − Retired Vehicles in Region
+Regional Utilization = (Vehicles OnTrip in Region / Active Vehicles in Region) × 100
 ```
 
-**Source:** [`analytics.js:72-77`](file:///d:/FleetFlow/backend/routes/analytics.js#L72-L77)
+**Source:** [`analytics.js:72-82`](file:///d:/FleetFlow/backend/routes/analytics.js#L72-L82)
 
 ---
 
@@ -352,17 +353,21 @@ Monthly Distance         = Σ(end_odometer − start_odometer) for completed tri
 
 The CSV export computes per-vehicle:
 
-| Column              | Formula                                                   |
-| ------------------- | --------------------------------------------------------- |
-| `total_distance_km` | `Σ(end_odometer − start_odometer)` for completed trips    |
-| `revenue`           | `Σ(trips.revenue)` for completed trips                    |
-| `fuel_cost`         | `Σ(fuel_logs.cost)`                                       |
-| `maintenance_cost`  | `Σ(maintenance_logs.cost)`                                |
-| `operational_cost`  | `fuel_cost + maintenance_cost`                            |
-| `profit`            | `revenue − operational_cost`                              |
-| `roi_percent`       | `((revenue − operational_cost) / acquisition_cost) × 100` |
+| Column                        | Formula                                                   |
+| ----------------------------- | --------------------------------------------------------- |
+| Column                        | Formula                                                   |
+| ----------------------------- | --------------------------------------------------------- |
+| `total_distance_km`           | `Σ(end_odometer − start_odometer)` for completed trips    |
+| `revenue`                     | `Σ(trips.revenue)` for completed trips                    |
+| `fuel_cost`                   | `Σ(fuel_logs.cost)`                                       |
+| `maintenance_cost`            | `Σ(maintenance_logs.cost)`                                |
+| `operational_cost`            | `fuel_cost + maintenance_cost`                            |
+| `profit`                      | `revenue − operational_cost`                              |
+| `roi_percent`                 | `((revenue − operational_cost) / acquisition_cost) × 100` |
+| `cost_per_km`                 | `operational_cost / total_distance_km`                    |
+| `avg_efficiency_km_per_liter` | `total_distance_km / total_fuel_liters`                   |
 
-**Source:** [`analytics.js:336-362`](file:///d:/FleetFlow/backend/routes/analytics.js#L336-L362)
+**Source:** [`analytics.js:336-370`](file:///d:/FleetFlow/backend/routes/analytics.js#L336-L370)
 
 ---
 
@@ -386,16 +391,23 @@ utilization   = (onTrip / activeFleet) × 100   // same 2-decimal rounding
 ### 11.2 Expenses Page Aggregations
 
 ```javascript
-totalFuelCost        = Σ(fuelLogs.cost)
-totalLiters          = Σ(fuelLogs.liters)
-avgEfficiency        = Σ(log.efficiency where exists) / COUNT(logs with efficiency)
-totalMaintenanceCost = Σ(maintenanceLogs.cost)
-totalOperational     = totalFuelCost + totalMaintenanceCost
+totalFuelCost = Σ(fuelLogs.cost);
+totalLiters = Σ(fuelLogs.liters);
+totalMaintenanceCost = Σ(maintenanceLogs.cost);
+totalOperational = totalFuelCost + totalMaintenanceCost;
+```
+
+**Weighted Average Fuel Efficiency** (not arithmetic mean):
+
+```javascript
+totalWeightedDistance = Σ(log.efficiency × log.liters)   // reconstructs distance
+efficiencyLiters      = Σ(log.liters) for logs with efficiency
+avgEfficiency         = totalWeightedDistance / efficiencyLiters
 ```
 
 Per-vehicle costs are computed by iterating fuel and maintenance logs client-side and grouping by `vehicle_id`.
 
-**Source:** [`ExpensesPage.tsx:92-123`](file:///d:/FleetFlow/frontend/src/app/pages/ExpensesPage.tsx#L92-L123)
+**Source:** [`ExpensesPage.tsx:92-129`](file:///d:/FleetFlow/frontend/src/app/pages/ExpensesPage.tsx#L92-L129)
 
 ---
 

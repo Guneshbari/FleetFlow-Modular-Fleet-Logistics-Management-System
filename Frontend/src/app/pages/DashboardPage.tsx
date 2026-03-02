@@ -171,7 +171,7 @@ export function DashboardPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
         <StatCard
           title="Active Fleet"
-          value={String(totalVehicles)}
+          value={String(activeFleet)}
           icon={Truck}
           trend={{ value: `${onTrip} on trip, ${available} available`, positive: true }}
           color="green"
