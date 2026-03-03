@@ -7,6 +7,7 @@ import {
   UserCheck,
   BarChart3,
   ShieldCheck,
+  Settings,
   X
 } from 'lucide-react';
 
@@ -19,12 +20,12 @@ interface AppSidebarProps {
 }
 
 const roleAccess: Record<string, string[]> = {
-  'Super Admin':        ['dashboard', 'vehicles', 'trips', 'maintenance', 'expenses', 'drivers', 'analytics', 'super-admin'],
-  'Manager':            ['dashboard', 'vehicles', 'trips', 'maintenance', 'expenses', 'drivers', 'analytics'],
-  'Dispatcher':         ['dashboard', 'vehicles', 'trips'],
-  'Safety Officer':     ['dashboard', 'drivers'],
-  'Financial Analyst':  ['dashboard', 'expenses', 'analytics'],
-  'Driver':             ['driver-dashboard'],
+  'Super Admin':        ['dashboard', 'vehicles', 'trips', 'maintenance', 'expenses', 'drivers', 'analytics', 'super-admin', 'profile'],
+  'Manager':            ['dashboard', 'vehicles', 'trips', 'maintenance', 'expenses', 'drivers', 'analytics', 'profile'],
+  'Dispatcher':         ['dashboard', 'vehicles', 'trips', 'profile'],
+  'Safety Officer':     ['dashboard', 'drivers', 'profile'],
+  'Financial Analyst':  ['dashboard', 'expenses', 'analytics', 'profile'],
+  'Driver':             ['driver-dashboard', 'profile'],
 };
 
 const menuItems = [
@@ -37,6 +38,7 @@ const menuItems = [
   { id: 'drivers', label: 'Driver Performance', icon: UserCheck },
   { id: 'analytics', label: 'Analytics', icon: BarChart3 },
   { id: 'super-admin', label: 'Admin Panel', icon: ShieldCheck },
+  { id: 'profile', label: 'Profile & Settings', icon: Settings },
 ];
 
 export function AppSidebar({ currentPage, onNavigate, userRole, isOpen, onClose }: AppSidebarProps) {

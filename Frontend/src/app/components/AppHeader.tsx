@@ -275,12 +275,18 @@ export function AppHeader({ title, user, onLogout, onNavigate, onToggleSidebar }
         {/* User Info + Logout */}
         {user && (
           <div className="flex items-center gap-2 lg:gap-3 pl-2 border-l border-border">
-            <div className="text-right hidden sm:block">
-              <p className="text-sm font-semibold text-foreground leading-tight">{user.name}</p>
-              <p className="text-xs text-muted-foreground leading-tight">{user.role}</p>
-            </div>
-            <button className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center hover:opacity-90 transition-opacity">
-              <User className="w-5 h-5 text-primary-foreground" />
+            <button
+              onClick={() => onNavigate?.('profile')}
+              className="flex items-center gap-2 lg:gap-3 hover:opacity-80 transition-opacity cursor-pointer"
+              title="View Profile"
+            >
+              <div className="text-right hidden sm:block">
+                <p className="text-sm font-semibold text-foreground leading-tight">{user.name}</p>
+                <p className="text-xs text-muted-foreground leading-tight">{user.role}</p>
+              </div>
+              <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
+                <User className="w-5 h-5 text-primary-foreground" />
+              </div>
             </button>
             {onLogout && (
               <button

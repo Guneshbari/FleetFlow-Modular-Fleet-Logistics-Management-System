@@ -12,7 +12,14 @@ CREATE TABLE IF NOT EXISTS users (
   email TEXT UNIQUE NOT NULL,
   password_hash TEXT NOT NULL,
   role TEXT NOT NULL CHECK(role IN ('Super Admin', 'Manager', 'Dispatcher', 'Safety Officer', 'Financial Analyst', 'Driver')),
-  created_at TEXT DEFAULT (datetime('now'))
+  phone TEXT,
+  avatar_url TEXT,
+  address TEXT,
+  timezone TEXT DEFAULT 'UTC',
+  notifications_enabled INTEGER DEFAULT 1,
+  theme_preference TEXT DEFAULT 'dark',
+  created_at TEXT DEFAULT (datetime('now')),
+  updated_at TEXT DEFAULT (datetime('now'))
 );
 
 CREATE TABLE IF NOT EXISTS permissions (

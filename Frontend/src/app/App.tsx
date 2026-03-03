@@ -11,10 +11,11 @@ import { DriversPage } from './pages/DriversPage';
 import { AnalyticsPage } from './pages/AnalyticsPage';
 import { DriverDashboardPage } from './pages/DriverDashboardPage';
 import { SuperAdminPage } from './pages/SuperAdminPage';
+import { ProfilePage } from './pages/ProfilePage';
 import { useTheme } from './context/ThemeContext';
 import api from './services/api';
 
-type Page = 'login' | 'dashboard' | 'vehicles' | 'trips' | 'maintenance' | 'expenses' | 'drivers' | 'analytics' | 'driver-dashboard' | 'super-admin';
+type Page = 'login' | 'dashboard' | 'vehicles' | 'trips' | 'maintenance' | 'expenses' | 'drivers' | 'analytics' | 'driver-dashboard' | 'super-admin' | 'profile';
 
 const pageConfig = {
   dashboard: { title: 'Dashboard', component: DashboardPage },
@@ -26,6 +27,7 @@ const pageConfig = {
   analytics: { title: 'Analytics & Financial Reports', component: AnalyticsPage },
   'driver-dashboard': { title: 'My Deliveries', component: DriverDashboardPage },
   'super-admin': { title: 'Admin Panel', component: SuperAdminPage },
+  'profile': { title: 'Profile & Settings', component: ProfilePage },
 };
 
 export default function App() {

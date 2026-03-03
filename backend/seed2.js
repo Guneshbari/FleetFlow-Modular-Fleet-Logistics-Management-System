@@ -26,16 +26,18 @@ const insertRegion = db.prepare("INSERT INTO regions (name) VALUES (?)");
 ["North", "South", "East", "West"].forEach(r => insertRegion.run(r));
 
 console.log("Seeding users...");
-const insertUser = db.prepare("INSERT INTO users (name, email, password_hash, role) VALUES (?, ?, ?, ?)");
+const insertUser = db.prepare(
+  "INSERT INTO users (name, email, password_hash, role, phone, address) VALUES (?, ?, ?, ?, ?, ?)"
+);
 const hash = (pw) => bcrypt.hashSync(pw, 10);
 
-insertUser.run("Super Admin", "superadmin@fleetflow.com", hash("superadmin123"), "Super Admin");
-insertUser.run("Admin Manager", "admin@fleetflow.com", hash("admin123"), "Manager");
-insertUser.run("Jane Dispatcher", "jane@fleetflow.com", hash("jane123"), "Dispatcher");
-insertUser.run("Bob Manager", "bob@fleetflow.com", hash("bob123"), "Manager");
-insertUser.run("Sara Safety", "sara@fleetflow.com", hash("sara123"), "Safety Officer");
-insertUser.run("Frank Finance", "frank@fleetflow.com", hash("frank123"), "Financial Analyst");
-insertUser.run("John Driver", "john@driver.com", hash("driver123"), "Driver");
+insertUser.run("Super Admin", "superadmin@fleetflow.com", hash("superadmin123"), "Super Admin", "+1-555-000-0001", "100 Admin Blvd, HQ City");
+insertUser.run("Admin Manager", "admin@fleetflow.com", hash("admin123"), "Manager", "+1-555-100-0001", "200 Fleet Ave, Logistics Park");
+insertUser.run("Jane Dispatcher", "jane@fleetflow.com", hash("jane123"), "Dispatcher", "+1-555-200-0002", "300 Dispatch Rd, Transport Hub");
+insertUser.run("Bob Manager", "bob@fleetflow.com", hash("bob123"), "Manager", "+1-555-100-0003", "201 Fleet Ave, Logistics Park");
+insertUser.run("Sara Safety", "sara@fleetflow.com", hash("sara123"), "Safety Officer", "+1-555-300-0004", "400 Safety Lane, Compliance Center");
+insertUser.run("Frank Finance", "frank@fleetflow.com", hash("frank123"), "Financial Analyst", "+1-555-400-0005", "500 Finance St, Analytics Wing");
+insertUser.run("John Driver", "john@driver.com", hash("driver123"), "Driver", "+1-555-500-0006", "600 Driver Way, Depot A");
 
 console.log("Seeding vehicles...");
 const insertVehicle = db.prepare(

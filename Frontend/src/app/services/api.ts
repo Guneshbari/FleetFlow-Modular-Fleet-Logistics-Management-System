@@ -265,6 +265,17 @@ export const admin = {
     request('DELETE', `/admin/users/${userId}/permissions/${permId}`),
 };
 
+// ── Profile ──────────────────────────────────────
+export const profile = {
+  get: () => request('GET', '/profile'),
+  update: (data: { name?: string; phone?: string; address?: string; timezone?: string; notifications_enabled?: boolean; theme_preference?: string }) =>
+    request('PUT', '/profile', data),
+  changePassword: (data: { current_password: string; new_password: string }) =>
+    request('PUT', '/profile/password', data),
+  updateAvatar: (avatar_url: string | null) =>
+    request('PUT', '/profile/avatar', { avatar_url }),
+};
+
 // Default export
-const api = { auth, vehicles, drivers, trips, fuel, maintenance, analytics, regions, admin, setRole, getStoredRole, ApiError };
+const api = { auth, vehicles, drivers, trips, fuel, maintenance, analytics, regions, admin, profile, setRole, getStoredRole, ApiError };
 export default api;
