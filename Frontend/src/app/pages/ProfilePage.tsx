@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
-import { User, Mail, Phone, MapPin, Clock, Bell, Palette, Lock, Save, Loader2, CheckCircle, AlertCircle, Shield, Calendar } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { User, Mail, Phone, MapPin, Clock, Bell, Palette, Lock, Save, Loader2, CheckCircle, AlertCircle, Shield, Calendar, Camera, X } from 'lucide-react';
 import { Input } from '../components/ui/input';
 import { Button } from '../components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { useTheme } from '../context/ThemeContext';
 import api from '../services/api';
 
 interface ProfileData {
@@ -35,13 +36,20 @@ const ROLE_COLORS: Record<string, string> = {
   'Driver': 'bg-cyan-500/15 text-cyan-400 border-cyan-500/30',
 };
 
+const MAX_AVATAR_SIZE = 500 * 1024; // 500KB
+const MIN_DIMENSION = 100;
+const MAX_DIMENSION = 1024;
+
 export function ProfilePage() {
+  const { theme, setTheme } = useTheme();
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [changingPw, setChangingPw] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Form state
   const [name, setName] = useState('');
@@ -91,6 +99,17 @@ export function ProfilePage() {
     setTimeout(() => setErrorMsg(''), 5000);
   }
 
+  // ── Theme change handler — syncs with ThemeContext ──
+  function handleThemeChange(value: string) {
+    setThemePref(value);
+    if (value === 'dark' || value === 'light') {
+      setTheme(value);
+    } else if (value === 'system') {
+      const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      setTheme(systemDark ? 'dark' : 'light');
+    }
+  }
+
   async function handleSaveProfile(e: React.FormEvent) {
     e.preventDefault();
     try {
@@ -135,6 +154,88 @@ export function ProfilePage() {
     }
   }
 
+  // ── Avatar upload with validation ──
+  function handleAvatarClick() {
+    fileInputRef.current?.click();
+  }
+
+  async function handleAvatarFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate type
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      showError('Only JPEG, PNG, or WebP images are allowed');
+      return;
+    }
+
+    // Validate size
+    if (file.size > MAX_AVATAR_SIZE) {
+      showError(`Image must be under ${MAX_AVATAR_SIZE / 1024}KB (yours is ${Math.round(file.size / 1024)}KB)`);
+      return;
+    }
+
+    // Validate dimensions
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+
+    img.onload = async () => {
+      URL.revokeObjectURL(url);
+
+      if (img.width < MIN_DIMENSION || img.height < MIN_DIMENSION) {
+        showError(`Image must be at least ${MIN_DIMENSION}×${MIN_DIMENSION}px (yours is ${img.width}×${img.height}px)`);
+        return;
+      }
+
+      // Convert to base64 data URL
+      const canvas = document.createElement('canvas');
+      const size = Math.min(img.width, img.height, MAX_DIMENSION);
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d')!;
+
+      // Center crop to square
+      const sx = (img.width - size) / 2;
+      const sy = (img.height - size) / 2;
+      ctx.drawImage(img, sx, sy, size, size, 0, 0, size, size);
+
+      const dataUrl = canvas.toDataURL('image/webp', 0.85);
+
+      try {
+        setUploadingAvatar(true);
+        const result = await api.profile.updateAvatar(dataUrl);
+        setProfile(result.profile);
+        showSuccess('Avatar updated successfully');
+      } catch (err: any) {
+        showError(err.message || 'Failed to upload avatar');
+      } finally {
+        setUploadingAvatar(false);
+      }
+    };
+
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      showError('Could not read image file');
+    };
+
+    img.src = url;
+    // Clear input so same file can be re-selected
+    e.target.value = '';
+  }
+
+  async function handleRemoveAvatar() {
+    try {
+      setUploadingAvatar(true);
+      const result = await api.profile.updateAvatar(null);
+      setProfile(result.profile);
+      showSuccess('Avatar removed');
+    } catch (err: any) {
+      showError(err.message || 'Failed to remove avatar');
+    } finally {
+      setUploadingAvatar(false);
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -155,6 +256,15 @@ export function ProfilePage() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
+      {/* Hidden file input for avatar */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        className="hidden"
+        onChange={handleAvatarFile}
+      />
+
       {/* Success/Error Toasts */}
       {successMsg && (
         <div className="flex items-center gap-2 bg-[#22C55E]/10 text-[#22C55E] px-4 py-3 rounded-lg text-sm font-medium animate-in slide-in-from-top">
@@ -172,18 +282,36 @@ export function ProfilePage() {
       {/* Profile Header Card */}
       <div className="bg-card border border-border rounded-xl p-6">
         <div className="flex flex-col sm:flex-row items-center gap-6">
-          {/* Avatar */}
-          <div className="relative">
+          {/* Avatar with upload */}
+          <div className="relative group">
             {profile.avatar_url ? (
-              <img src={profile.avatar_url} alt={profile.name} className="w-24 h-24 rounded-full object-cover border-4 border-primary/20" />
+              <>
+                <img src={profile.avatar_url} alt={profile.name} className="w-24 h-24 rounded-full object-cover border-4 border-primary/20" />
+                <button
+                  onClick={handleRemoveAvatar}
+                  className="absolute -top-1 -right-1 w-6 h-6 bg-[#EF4444] rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                  title="Remove avatar"
+                >
+                  <X className="w-3 h-3 text-white" />
+                </button>
+              </>
             ) : (
               <div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary/30 to-primary/10 border-4 border-primary/20 flex items-center justify-center">
                 <span className="text-2xl font-bold text-primary">{initials}</span>
               </div>
             )}
-            <div className="absolute -bottom-1 -right-1 w-7 h-7 bg-[#22C55E] rounded-full border-2 border-card flex items-center justify-center">
-              <CheckCircle className="w-3.5 h-3.5 text-white" />
-            </div>
+            <button
+              onClick={handleAvatarClick}
+              disabled={uploadingAvatar}
+              className="absolute bottom-0 right-0 w-8 h-8 bg-primary rounded-full border-2 border-card flex items-center justify-center cursor-pointer hover:bg-primary/80 transition-colors"
+              title="Upload avatar (JPEG/PNG/WebP, max 500KB, min 100×100px)"
+            >
+              {uploadingAvatar ? (
+                <Loader2 className="w-4 h-4 text-primary-foreground animate-spin" />
+              ) : (
+                <Camera className="w-4 h-4 text-primary-foreground" />
+              )}
+            </button>
           </div>
 
           {/* User Info */}
@@ -200,6 +328,9 @@ export function ProfilePage() {
                 Member since {new Date(profile.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
               </span>
             </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Max 500KB • JPEG, PNG, or WebP • Min 100×100px
+            </p>
           </div>
         </div>
       </div>
@@ -279,13 +410,16 @@ export function ProfilePage() {
                     ))}
                   </SelectContent>
                 </Select>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Current local time: {new Date().toLocaleTimeString('en-US', { timeZone: timezone, hour: '2-digit', minute: '2-digit', hour12: true })}
+                </p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-muted-foreground mb-1.5">
                   <Palette className="w-3.5 h-3.5 inline mr-1" />
-                  Theme Preference
+                  Theme
                 </label>
-                <Select value={themePref} onValueChange={setThemePref}>
+                <Select value={themePref} onValueChange={handleThemeChange}>
                   <SelectTrigger className="bg-background border-border">
                     <SelectValue />
                   </SelectTrigger>
@@ -295,6 +429,9 @@ export function ProfilePage() {
                     <SelectItem value="system">💻 System</SelectItem>
                   </SelectContent>
                 </Select>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Active: {theme} mode
+                </p>
               </div>
               <div className="flex items-center justify-between py-2">
                 <div>

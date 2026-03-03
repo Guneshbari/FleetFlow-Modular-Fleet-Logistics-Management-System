@@ -4,19 +4,20 @@ type Theme = 'light' | 'dark';
 
 interface ThemeContextType {
   theme: Theme;
+  setTheme: (theme: Theme) => void;
   toggleTheme: () => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setTheme] = useState<Theme>('dark');
+  const [theme, setThemeState] = useState<Theme>('dark');
 
   useEffect(() => {
     // Load theme from localStorage
     const savedTheme = localStorage.getItem('fleetflow-theme') as Theme;
-    if (savedTheme) {
-      setTheme(savedTheme);
+    if (savedTheme && (savedTheme === 'dark' || savedTheme === 'light')) {
+      setThemeState(savedTheme);
     }
   }, []);
 
@@ -27,12 +28,16 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('fleetflow-theme', theme);
   }, [theme]);
 
+  const setTheme = (newTheme: Theme) => {
+    setThemeState(newTheme);
+  };
+
   const toggleTheme = () => {
-    setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
+    setThemeState((prev) => (prev === 'dark' ? 'light' : 'dark'));
   };
 
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme }}>
+    <ThemeContext.Provider value={{ theme, setTheme, toggleTheme }}>
       {children}
     </ThemeContext.Provider>
   );

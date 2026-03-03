@@ -41,7 +41,7 @@ app.use(cors({
 }));
 
 // Body parser with size limit
-app.use(express.json({ limit: "10kb" }));
+app.use(express.json({ limit: "1mb" }));
 
 // ── Rate Limiting ────────────────────────────────────────
 
