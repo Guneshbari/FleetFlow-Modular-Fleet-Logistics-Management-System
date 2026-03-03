@@ -5,7 +5,7 @@ import api from '../services/api';
 
 interface AppHeaderProps {
   title: string;
-  user?: { id: number; name: string; email: string; role: string } | null;
+  user?: { id: number; name: string; email: string; role: string; avatar_url?: string | null } | null;
   onLogout?: () => void;
   onNavigate?: (page: string) => void;
   onToggleSidebar?: () => void;
@@ -180,7 +180,7 @@ export function AppHeader({ title, user, onLogout, onNavigate, onToggleSidebar }
   const loadNotifications = async () => {
     setNotifLoading(true);
     try {
-      const data = await (api as any).analytics.notifications();
+      const data = await api.notifications.list();
       setNotifications(Array.isArray(data) ? data : []);
     } catch {
       setNotifications([]);
@@ -368,9 +368,13 @@ export function AppHeader({ title, user, onLogout, onNavigate, onToggleSidebar }
                 <p className="text-sm font-semibold text-foreground leading-tight">{user.name}</p>
                 <p className="text-xs text-muted-foreground leading-tight">{user.role}</p>
               </div>
-              <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
-                <User className="w-5 h-5 text-primary-foreground" />
-              </div>
+              {user.avatar_url ? (
+                <img src={user.avatar_url} alt={user.name} className="w-10 h-10 rounded-lg object-cover" />
+              ) : (
+                <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
+                  <User className="w-5 h-5 text-primary-foreground" />
+                </div>
+              )}
             </button>
             {onLogout && (
               <button

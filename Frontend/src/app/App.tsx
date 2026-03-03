@@ -33,7 +33,7 @@ const pageConfig = {
 export default function App() {
   const [currentPage, setCurrentPage] = useState<Page>('login');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [user, setUser] = useState<{ id: number; name: string; email: string; role: string } | null>(null);
+  const [user, setUser] = useState<{ id: number; name: string; email: string; role: string; avatar_url?: string | null } | null>(null);
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { theme } = useTheme();
@@ -69,7 +69,7 @@ export default function App() {
     resumeSession();
   }, []);
 
-  const handleLogin = (userData: { id: number; name: string; email: string; role: string }) => {
+  const handleLogin = (userData: { id: number; name: string; email: string; role: string; avatar_url?: string | null }) => {
     setUser(userData);
     setIsAuthenticated(true);
     setCurrentPage(userData.role === 'Driver' ? 'driver-dashboard' : 'dashboard');

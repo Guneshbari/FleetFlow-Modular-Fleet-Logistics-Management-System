@@ -276,6 +276,11 @@ export const profile = {
     request('PUT', '/profile/avatar', { avatar_url }),
 };
 
+// ── Notifications ──────────────────────────────────────
+export const notifications = {
+  list: () => request('GET', '/notifications'),
+};
+
 // Default export
-const api = { auth, vehicles, drivers, trips, fuel, maintenance, analytics, regions, admin, profile, setRole, getStoredRole, ApiError };
+const api = { auth, vehicles, drivers, trips, fuel, maintenance, analytics, regions, admin, profile, notifications, setRole, getStoredRole, ApiError };
 export default api;

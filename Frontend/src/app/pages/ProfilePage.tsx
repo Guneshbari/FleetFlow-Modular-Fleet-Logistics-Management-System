@@ -104,9 +104,6 @@ export function ProfilePage() {
     setThemePref(value);
     if (value === 'dark' || value === 'light') {
       setTheme(value);
-    } else if (value === 'system') {
-      const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      setTheme(systemDark ? 'dark' : 'light');
     }
   }
 
@@ -384,6 +381,32 @@ export function ProfilePage() {
               {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
               Save Changes
             </Button>
+
+            {/* Quick Tips */}
+            <div className="bg-secondary/50 rounded-lg p-4 mt-2">
+              <h4 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-1.5">
+                <AlertCircle className="w-4 h-4 text-primary" />
+                Quick Tips
+              </h4>
+              <ul className="space-y-1.5 text-xs text-muted-foreground">
+                <li className="flex items-start gap-1.5">
+                  <span className="text-primary mt-0.5">•</span>
+                  Use the global search bar to find vehicles, trips, and settings.
+                </li>
+                <li className="flex items-start gap-1.5">
+                  <span className="text-primary mt-0.5">•</span>
+                  Check the notification bell for maintenance alerts and dispatch updates.
+                </li>
+                <li className="flex items-start gap-1.5">
+                  <span className="text-primary mt-0.5">•</span>
+                  Upload an avatar (max 500KB) by clicking the camera icon above.
+                </li>
+                <li className="flex items-start gap-1.5">
+                  <span className="text-primary mt-0.5">•</span>
+                  Password must be at least 6 characters. Use a mix of letters, numbers, and symbols.
+                </li>
+              </ul>
+            </div>
           </div>
         </form>
 
@@ -426,7 +449,6 @@ export function ProfilePage() {
                   <SelectContent className="bg-card border-border">
                     <SelectItem value="dark">🌙 Dark</SelectItem>
                     <SelectItem value="light">☀️ Light</SelectItem>
-                    <SelectItem value="system">💻 System</SelectItem>
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-muted-foreground mt-1">

@@ -18,6 +18,7 @@ const analyticsRoutes = require("./routes/analytics");
 const regionRoutes = require("./routes/regions");
 const adminRoutes = require("./routes/admin");
 const profileRoutes = require("./routes/profile");
+const notificationRoutes = require("./routes/notifications");
 
 const app = express();
 
@@ -83,6 +84,7 @@ app.use("/analytics", apiLimiter, authenticateToken, analyticsRoutes);
 app.use("/regions", apiLimiter, authenticateToken, regionRoutes);
 app.use("/admin", apiLimiter, authenticateToken, adminRoutes);
 app.use("/profile", apiLimiter, authenticateToken, profileRoutes);
+app.use("/notifications", apiLimiter, authenticateToken, notificationRoutes);
 
 // Centralized error handler (must be last)
 app.use(errorHandler);
@@ -91,6 +93,6 @@ const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
   console.log(`FleetFlow API running on http://localhost:${PORT}`);
-  console.log("Routes: /auth, /vehicles, /drivers, /trips, /fuel, /maintenance, /analytics, /regions, /admin, /profile");
+  console.log("Routes: /auth, /vehicles, /drivers, /trips, /fuel, /maintenance, /analytics, /regions, /admin, /profile, /notifications");
   console.log("Security: helmet, CORS, rate-limiting, JWT auth");
 });

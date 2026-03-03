@@ -97,7 +97,7 @@ router.post("/signup", (req, res) => {
     "INSERT INTO users (name, email, password_hash, role) VALUES (?, ?, ?, ?)"
   ).run(name, email, password_hash, role);
 
-  const user = db.prepare("SELECT id, name, email, role, created_at FROM users WHERE id = ?").get(result.lastInsertRowid);
+  const user = db.prepare("SELECT id, name, email, role, avatar_url, created_at FROM users WHERE id = ?").get(result.lastInsertRowid);
 
   const accessToken = generateAccessToken(user);
   const refreshToken = generateRefreshToken(user);
@@ -135,7 +135,7 @@ router.post("/login", (req, res) => {
   res.json({
     accessToken,
     refreshToken,
-    user: { id: user.id, name: user.name, email: user.email, role: user.role },
+    user: { id: user.id, name: user.name, email: user.email, role: user.role, avatar_url: user.avatar_url || null },
   });
 });
 
@@ -201,7 +201,7 @@ router.get("/me", (req, res) => {
   const token = authHeader.split(" ")[1];
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
-    const user = db.prepare("SELECT id, name, email, role, created_at FROM users WHERE id = ?").get(decoded.id);
+    const user = db.prepare("SELECT id, name, email, role, avatar_url, created_at FROM users WHERE id = ?").get(decoded.id);
     if (!user) {
       return res.status(404).json({ error: "User not found" });
     }
