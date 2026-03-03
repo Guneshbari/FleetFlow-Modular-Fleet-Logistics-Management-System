@@ -94,3 +94,12 @@ CREATE TABLE IF NOT EXISTS maintenance_logs (
   created_at TEXT DEFAULT (datetime('now')),
   FOREIGN KEY(vehicle_id) REFERENCES vehicles(id)
 );
+
+CREATE TABLE IF NOT EXISTS refresh_tokens (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  token_hash TEXT UNIQUE NOT NULL,
+  expires_at TEXT NOT NULL,
+  created_at TEXT DEFAULT (datetime('now')),
+  FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+);

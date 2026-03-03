@@ -46,8 +46,20 @@ export default function App() {
           setIsAuthenticated(true);
           setCurrentPage(result.user.role === 'Driver' ? 'driver-dashboard' : 'dashboard');
         } catch {
-          // Token expired or invalid — stay on login
-          api.auth.logout();
+          // Access token expired — try silent refresh
+          const refreshed = await api.auth.refresh();
+          if (refreshed) {
+            try {
+              const result = await api.auth.me();
+              setUser(result.user);
+              setIsAuthenticated(true);
+              setCurrentPage(result.user.role === 'Driver' ? 'driver-dashboard' : 'dashboard');
+            } catch {
+              await api.auth.logout();
+            }
+          } else {
+            await api.auth.logout();
+          }
         }
       }
       setLoading(false);
@@ -61,8 +73,8 @@ export default function App() {
     setCurrentPage(userData.role === 'Driver' ? 'driver-dashboard' : 'dashboard');
   };
 
-  const handleLogout = () => {
-    api.auth.logout();
+  const handleLogout = async () => {
+    await api.auth.logout();
     setUser(null);
     setIsAuthenticated(false);
     setCurrentPage('login');

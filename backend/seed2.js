@@ -9,6 +9,7 @@ const bcrypt = require("bcryptjs");
 // Wipe existing data in correct FK order
 console.log("Clearing existing data...");
 db.exec("DELETE FROM permissions");
+db.exec("DELETE FROM refresh_tokens");
 db.exec("DELETE FROM fuel_logs");
 db.exec("DELETE FROM maintenance_logs");
 db.exec("DELETE FROM trips");

@@ -1,24 +1,32 @@
 /**
  * FleetFlow API Service Layer
  * Central module for all backend API calls.
- * Uses JWT token from localStorage for authentication.
+ * Uses JWT access tokens with automatic refresh on expiry.
  */
 
 const BASE = '/api';
 
 // ── Token Management ──────────────────────────────────────
-function getToken(): string {
-  return localStorage.getItem('fleetflow_token') || '';
+function getAccessToken(): string {
+  return localStorage.getItem('fleetflow_access_token') || '';
 }
 
-function setToken(token: string) {
-  localStorage.setItem('fleetflow_token', token);
+function getRefreshToken(): string {
+  return localStorage.getItem('fleetflow_refresh_token') || '';
 }
 
-function clearToken() {
-  localStorage.removeItem('fleetflow_token');
+function setTokens(accessToken: string, refreshToken: string) {
+  localStorage.setItem('fleetflow_access_token', accessToken);
+  localStorage.setItem('fleetflow_refresh_token', refreshToken);
+}
+
+function clearAuth() {
+  localStorage.removeItem('fleetflow_access_token');
+  localStorage.removeItem('fleetflow_refresh_token');
   localStorage.removeItem('fleetflow_user');
   localStorage.removeItem('fleetflow_role');
+  // Also remove legacy key if present
+  localStorage.removeItem('fleetflow_token');
 }
 
 function getStoredUser(): { id: number; name: string; email: string; role: string } | null {
@@ -40,19 +48,54 @@ export function getStoredRole(): string {
   return localStorage.getItem('fleetflow_role') || '';
 }
 
+// ── Silent Refresh ───────────────────────────────────────
+let isRefreshing = false;
+let refreshPromise: Promise<boolean> | null = null;
+
+async function attemptRefresh(): Promise<boolean> {
+  // Prevent concurrent refresh attempts
+  if (isRefreshing && refreshPromise) {
+    return refreshPromise;
+  }
+
+  isRefreshing = true;
+  refreshPromise = (async () => {
+    const rt = getRefreshToken();
+    if (!rt) return false;
+
+    try {
+      const res = await fetch(`${BASE}/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refreshToken: rt }),
+      });
+
+      if (!res.ok) return false;
+
+      const data = await res.json();
+      setTokens(data.accessToken, data.refreshToken);
+      if (data.user) setStoredUser(data.user);
+      return true;
+    } catch {
+      return false;
+    } finally {
+      isRefreshing = false;
+      refreshPromise = null;
+    }
+  })();
+
+  return refreshPromise;
+}
+
 // ── HTTP Request Helper ──────────────────────────────────────
-async function request<T = any>(method: string, path: string, body?: any): Promise<T> {
+async function request<T = any>(method: string, path: string, body?: any, retried = false): Promise<T> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  
-  // Attach JWT token if available
-  const token = getToken();
+
+  // Attach JWT access token if available
+  const token = getAccessToken();
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
   }
-  
-  // Fallback: attach role header for backward compat
-  const role = getStoredRole();
-  if (role) headers['x-role'] = role;
 
   const res = await fetch(`${BASE}${path}`, {
     method,
@@ -69,13 +112,25 @@ async function request<T = any>(method: string, path: string, body?: any): Promi
   }
 
   const data = await res.json().catch(() => null);
+
   if (!res.ok) {
-    // Auto-logout on 401
-    if (res.status === 401) {
-      clearToken();
+    // On 401 with TOKEN_EXPIRED, try silent refresh (once)
+    if (res.status === 401 && !retried && data?.code === 'TOKEN_EXPIRED') {
+      const refreshed = await attemptRefresh();
+      if (refreshed) {
+        return request<T>(method, path, body, true);
+      }
     }
+
+    // Auto-logout on any unrecoverable 401
+    if (res.status === 401) {
+      clearAuth();
+      window.location.reload();
+    }
+
     throw new ApiError(res.status, data?.error || `Request failed with status ${res.status}`);
   }
+
   return data;
 }
 
@@ -91,14 +146,14 @@ export class ApiError extends Error {
 // ── Auth ──────────────────────────────────────
 export const auth = {
   signup: async (data: { name: string; email: string; password: string; role: string }) => {
-    const result = await request<{ token: string; user: any }>('POST', '/auth/signup', data);
-    setToken(result.token);
+    const result = await request<{ accessToken: string; refreshToken: string; user: any }>('POST', '/auth/signup', data);
+    setTokens(result.accessToken, result.refreshToken);
     setStoredUser(result.user);
     return result;
   },
   login: async (data: { email: string; password: string }) => {
-    const result = await request<{ token: string; user: any }>('POST', '/auth/login', data);
-    setToken(result.token);
+    const result = await request<{ accessToken: string; refreshToken: string; user: any }>('POST', '/auth/login', data);
+    setTokens(result.accessToken, result.refreshToken);
     setStoredUser(result.user);
     return result;
   },
@@ -107,11 +162,22 @@ export const auth = {
     setStoredUser(result.user);
     return result;
   },
-  logout: () => {
-    clearToken();
+  refresh: attemptRefresh,
+  logout: async () => {
+    const rt = getRefreshToken();
+    try {
+      await fetch(`${BASE}/auth/logout`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refreshToken: rt }),
+      });
+    } catch {
+      // Ignore network errors on logout
+    }
+    clearAuth();
   },
   getStoredUser,
-  isLoggedIn: () => !!getToken(),
+  isLoggedIn: () => !!getAccessToken(),
 };
 
 // ── Vehicles ──────────────────────────────────────
