@@ -110,3 +110,58 @@ CREATE TABLE IF NOT EXISTS refresh_tokens (
   created_at TEXT DEFAULT (datetime('now')),
   FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
 );
+
+-- Phase 2: Driver Scoring & Gamification
+CREATE TABLE IF NOT EXISTS driver_scores (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  driver_id INTEGER NOT NULL,
+  period TEXT NOT NULL,
+  safety_score REAL DEFAULT 0,
+  efficiency_score REAL DEFAULT 0,
+  punctuality_score REAL DEFAULT 0,
+  overall_score REAL DEFAULT 0,
+  rank INTEGER DEFAULT 0,
+  badges TEXT DEFAULT '[]',
+  calculated_at TEXT DEFAULT (datetime('now')),
+  FOREIGN KEY(driver_id) REFERENCES drivers(id),
+  UNIQUE(driver_id, period)
+);
+
+-- Phase 2: Geofencing & Zone Alerts
+CREATE TABLE IF NOT EXISTS geofences (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  type TEXT DEFAULT 'circle' CHECK(type IN ('circle', 'polygon')),
+  center_lat REAL,
+  center_lng REAL,
+  radius_km REAL DEFAULT 5,
+  region_id INTEGER,
+  alert_on_entry INTEGER DEFAULT 1,
+  alert_on_exit INTEGER DEFAULT 1,
+  status TEXT DEFAULT 'Active' CHECK(status IN ('Active', 'Inactive')),
+  created_at TEXT DEFAULT (datetime('now')),
+  FOREIGN KEY(region_id) REFERENCES regions(id)
+);
+
+CREATE TABLE IF NOT EXISTS geofence_events (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  vehicle_id INTEGER NOT NULL,
+  geofence_id INTEGER NOT NULL,
+  event_type TEXT NOT NULL CHECK(event_type IN ('entry', 'exit')),
+  timestamp TEXT DEFAULT (datetime('now')),
+  FOREIGN KEY(vehicle_id) REFERENCES vehicles(id),
+  FOREIGN KEY(geofence_id) REFERENCES geofences(id)
+);
+
+-- Phase 2: Document & License Center
+CREATE TABLE IF NOT EXISTS documents (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  entity_type TEXT NOT NULL CHECK(entity_type IN ('driver', 'vehicle')),
+  entity_id INTEGER NOT NULL,
+  doc_type TEXT NOT NULL,
+  doc_name TEXT NOT NULL,
+  file_url TEXT,
+  expiry_date TEXT,
+  status TEXT DEFAULT 'Valid' CHECK(status IN ('Valid', 'Expiring', 'Expired', 'Pending')),
+  uploaded_at TEXT DEFAULT (datetime('now'))
+);

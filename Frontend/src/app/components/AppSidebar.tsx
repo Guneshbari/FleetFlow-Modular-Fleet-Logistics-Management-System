@@ -8,7 +8,9 @@ import {
   BarChart3,
   ShieldCheck,
   Settings,
-  X
+  X,
+  MapPin,
+  FolderOpen
 } from 'lucide-react';
 
 interface AppSidebarProps {
@@ -20,10 +22,10 @@ interface AppSidebarProps {
 }
 
 const roleAccess: Record<string, string[]> = {
-  'Super Admin':        ['dashboard', 'vehicles', 'trips', 'maintenance', 'expenses', 'drivers', 'analytics', 'super-admin', 'profile'],
-  'Manager':            ['dashboard', 'vehicles', 'trips', 'maintenance', 'expenses', 'drivers', 'analytics', 'profile'],
-  'Dispatcher':         ['dashboard', 'vehicles', 'trips', 'profile'],
-  'Safety Officer':     ['dashboard', 'drivers', 'profile'],
+  'Super Admin':        ['dashboard', 'vehicles', 'trips', 'maintenance', 'expenses', 'drivers', 'analytics', 'geofences', 'documents', 'super-admin', 'profile'],
+  'Manager':            ['dashboard', 'vehicles', 'trips', 'maintenance', 'expenses', 'drivers', 'analytics', 'geofences', 'documents', 'profile'],
+  'Dispatcher':         ['dashboard', 'vehicles', 'trips', 'geofences', 'profile'],
+  'Safety Officer':     ['dashboard', 'drivers', 'documents', 'profile'],
   'Financial Analyst':  ['dashboard', 'expenses', 'analytics', 'profile'],
   'Driver':             ['driver-dashboard', 'profile'],
 };
@@ -37,6 +39,8 @@ const menuItems = [
   { id: 'expenses', label: 'Trip & Expense', icon: FileText },
   { id: 'drivers', label: 'Driver Performance', icon: UserCheck },
   { id: 'analytics', label: 'Analytics', icon: BarChart3 },
+  { id: 'geofences', label: 'Geofencing', icon: MapPin },
+  { id: 'documents', label: 'Documents', icon: FolderOpen },
   { id: 'super-admin', label: 'Admin Panel', icon: ShieldCheck },
   { id: 'profile', label: 'Profile & Settings', icon: Settings },
 ];
