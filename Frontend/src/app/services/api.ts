@@ -281,6 +281,38 @@ export const notifications = {
   list: () => request('GET', '/notifications'),
 };
 
+// ── Scoring & Gamification ──────────────────────────────
+export const scoring = {
+  leaderboard: (period = 'current') => request('GET', `/scoring/leaderboard?period=${period}`),
+  driver: (id: number) => request('GET', `/scoring/driver/${id}`),
+  recalculate: (period = 'current') => request('POST', '/scoring/recalculate', { period }),
+};
+
+// ── Geofences ──────────────────────────────────────────
+export const geofences = {
+  list: () => request('GET', '/geofences'),
+  create: (data: { name: string; type?: string; center_lat?: number; center_lng?: number; radius_km?: number; region_id?: number; alert_on_entry?: number; alert_on_exit?: number }) =>
+    request('POST', '/geofences', data),
+  update: (id: number, data: any) => request('PUT', `/geofences/${id}`, data),
+  delete: (id: number) => request('DELETE', `/geofences/${id}`),
+  events: () => request('GET', '/geofences/events'),
+};
+
+// ── Documents ──────────────────────────────────────────
+export const documents = {
+  list: (params?: { entity_type?: string; entity_id?: number; status?: string }) => {
+    const qs = params ? '?' + new URLSearchParams(params as any).toString() : '';
+    return request('GET', `/documents${qs}`);
+  },
+  expiring: (days = 30) => request('GET', `/documents/expiring?days=${days}`),
+  expired: () => request('GET', '/documents/expired'),
+  stats: () => request('GET', '/documents/stats'),
+  create: (data: { entity_type: string; entity_id: number; doc_type: string; doc_name: string; file_url?: string; expiry_date?: string }) =>
+    request('POST', '/documents', data),
+  update: (id: number, data: any) => request('PUT', `/documents/${id}`, data),
+  delete: (id: number) => request('DELETE', `/documents/${id}`),
+};
+
 // Default export
-const api = { auth, vehicles, drivers, trips, fuel, maintenance, analytics, regions, admin, profile, notifications, setRole, getStoredRole, ApiError };
+const api = { auth, vehicles, drivers, trips, fuel, maintenance, analytics, regions, admin, profile, notifications, scoring, geofences, documents, setRole, getStoredRole, ApiError };
 export default api;

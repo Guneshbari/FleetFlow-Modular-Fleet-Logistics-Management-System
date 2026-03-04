@@ -12,10 +12,12 @@ import { AnalyticsPage } from './pages/AnalyticsPage';
 import { DriverDashboardPage } from './pages/DriverDashboardPage';
 import { SuperAdminPage } from './pages/SuperAdminPage';
 import { ProfilePage } from './pages/ProfilePage';
+import { GeofencePage } from './pages/GeofencePage';
+import { DocumentsPage } from './pages/DocumentsPage';
 import { useTheme } from './context/ThemeContext';
 import api from './services/api';
 
-type Page = 'login' | 'dashboard' | 'vehicles' | 'trips' | 'maintenance' | 'expenses' | 'drivers' | 'analytics' | 'driver-dashboard' | 'super-admin' | 'profile';
+type Page = 'login' | 'dashboard' | 'vehicles' | 'trips' | 'maintenance' | 'expenses' | 'drivers' | 'analytics' | 'driver-dashboard' | 'super-admin' | 'profile' | 'geofences' | 'documents';
 
 const pageConfig = {
   dashboard: { title: 'Dashboard', component: DashboardPage },
@@ -28,6 +30,8 @@ const pageConfig = {
   'driver-dashboard': { title: 'My Deliveries', component: DriverDashboardPage },
   'super-admin': { title: 'Admin Panel', component: SuperAdminPage },
   'profile': { title: 'Profile & Settings', component: ProfilePage },
+  'geofences': { title: 'Geofencing & Zone Alerts', component: GeofencePage },
+  'documents': { title: 'Document & License Center', component: DocumentsPage },
 };
 
 export default function App() {
